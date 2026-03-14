@@ -1,15 +1,21 @@
 -- ============================================================
 -- NAMELESS CLIENT | Mobile Edition
--- Base: Redz-LongHiHi logic → Linoria UI
+-- UI: Fluent (dawid-scripts)
+-- Logic: Redz-LongHiHi (inchangée)
 -- ============================================================
 
-local Library = loadstring(game:HttpGet('https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/Library.lua'))()
-local Window = Library:CreateWindow({
-    Title = 'Nameless client | Mobile Edition',
-    Center = true,
-    AutoShow = true,
-    TabPadding = 8,
-    MenuFadeTime = 0.2
+local Fluent = loadstring(game:HttpGet('https://github.com/dawid-scripts/Fluent/releases/latest/download/main.lua'))()
+local SaveManager = loadstring(game:HttpGet('https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/SaveManager.lua'))()
+local InterfaceManager = loadstring(game:HttpGet('https://raw.githubusercontent.com/dawid-scripts/Fluent/master/Addons/InterfaceManager.lua'))()
+
+local Window = Fluent:CreateWindow({
+    Title = 'Nameless Client',
+    SubTitle = 'Mobile Edition',
+    TabWidth = 120,
+    Size = UDim2.fromOffset(500, 350),
+    Acrylic = false,
+    Theme = 'Dark',
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
 -- ============================================================
@@ -22,12 +28,13 @@ local UICorner = Instance.new("UICorner")
 MobileToggleGui.Name = "MobileToggle"
 MobileToggleGui.Parent = game:GetService("CoreGui")
 MobileToggleGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+MobileToggleGui.ResetOnSpawn = false
 
 ToggleButton.Name = "ToggleButton"
 ToggleButton.Parent = MobileToggleGui
 ToggleButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 ToggleButton.BorderSizePixel = 0
-ToggleButton.Position = UDim2.new(0.1, 0, 0.15, 0)
+ToggleButton.Position = UDim2.new(0.05, 0, 0.15, 0)
 ToggleButton.Size = UDim2.new(0, 45, 0, 45)
 ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.Text = "BC"
@@ -39,195 +46,134 @@ UICorner.CornerRadius = UDim.new(0, 10)
 UICorner.Parent = ToggleButton
 
 ToggleButton.MouseButton1Click:Connect(function()
-    Library:Toggle()
+    Fluent:Toggle()
 end)
 
 -- ============================================================
--- TABS LINORIA (ordre original)
+-- CREATION DES TABS
 -- ============================================================
-local v484 = Window:AddTab('Information')
-local v485 = Window:AddTab('Farming')
-local v487 = Window:AddTab('Quest | Items')
-local v486 = Window:AddTab('Auto Fishing')
-local v489 = Window:AddTab('Sea Event')
-local v490 = Window:AddTab('Race V4')
-local v498 = Window:AddTab('Islands')
-local v491 = Window:AddTab('Raid/Fruits')
-local v497 = Window:AddTab('Stats')
-local v493 = Window:AddTab('Teleport')
-local v499 = Window:AddTab('Status')
-local v494 = Window:AddTab('Visual')
-local v495 = Window:AddTab('Shop')
-local v496 = Window:AddTab('Misc')
+local v484 = Window:AddTab({ Title = 'Information', Icon = 'info' })
+local v485 = Window:AddTab({ Title = 'Farming',     Icon = 'home' })
+local v487 = Window:AddTab({ Title = 'Quest/Items', Icon = 'swords' })
+local v486 = Window:AddTab({ Title = 'Fishing',     Icon = 'fish' })
+local v489 = Window:AddTab({ Title = 'Sea Event',   Icon = 'waves' })
+local v490 = Window:AddTab({ Title = 'Race V4',     Icon = 'crown' })
+local v498 = Window:AddTab({ Title = 'Islands',     Icon = 'map-pin' })
+local v491 = Window:AddTab({ Title = 'Raid/Fruits', Icon = 'cherry' })
+local v497 = Window:AddTab({ Title = 'Stats',       Icon = 'bar-chart' })
+local v493 = Window:AddTab({ Title = 'Teleport',    Icon = 'locate' })
+local v499 = Window:AddTab({ Title = 'Status',      Icon = 'activity' })
+local v494 = Window:AddTab({ Title = 'Visual',      Icon = 'eye' })
+local v495 = Window:AddTab({ Title = 'Shop',        Icon = 'shopping-cart' })
+local v496 = Window:AddTab({ Title = 'Misc',        Icon = 'settings' })
 
 -- ============================================================
--- GROUPBOXES PAR TAB (Linoria utilise AddLeftGroupbox / AddRightGroupbox)
+-- REMAP : Redz API → Fluent API
+-- Fluent utilise :AddToggle, :AddButton, :AddSlider, :AddDropdown
+-- directement sur le tab (pas sur un groupbox)
 -- ============================================================
-local InfoBox       = v484:AddLeftGroupbox('Information')
-local FarmBox       = v485:AddLeftGroupbox('Farming')
-local FarmBoxR      = v485:AddRightGroupbox('Farming Options')
-local QuestBox      = v487:AddLeftGroupbox('Quest | Items')
-local QuestBoxR     = v487:AddRightGroupbox('Quest Options')
-local FishBox       = v486:AddLeftGroupbox('Auto Fishing')
-local SeaBox        = v489:AddLeftGroupbox('Sea Event')
-local RaceBox       = v490:AddLeftGroupbox('Race V4')
-local IslandBox     = v498:AddLeftGroupbox('Islands')
-local IslandBoxR    = v498:AddRightGroupbox('Island Options')
-local RaidBox       = v491:AddLeftGroupbox('Raid / Fruits')
-local RaidBoxR      = v491:AddRightGroupbox('Raid Options')
-local StatsBox      = v497:AddLeftGroupbox('Stats')
-local TeleBox       = v493:AddLeftGroupbox('Teleport')
-local TeleBoxR      = v493:AddRightGroupbox('Teleport Sea')
-local StatusBox     = v499:AddLeftGroupbox('Status')
-local VisualBox     = v494:AddLeftGroupbox('Visual')
-local VisualBoxR    = v494:AddRightGroupbox('Visual Options')
-local ShopBox       = v495:AddLeftGroupbox('Shop')
-local ShopBoxR      = v495:AddRightGroupbox('Shop Options')
-local MiscBox       = v496:AddLeftGroupbox('Misc')
-local MiscBoxR      = v496:AddRightGroupbox('Misc Options')
-
--- ============================================================
--- HELPER : remplace AddSection (Redz) → Linoria label
--- ============================================================
--- (les appels AddSection ci-dessous sont des appels sur les groupbox Linoria,
---  qui n'existe pas en tant que tel - on les simule avec AddLabel)
--- On redéfinit AddSection sur chaque groupbox pour rester compatible
--- avec le code original copié tel quel :
-local function patchSection(box)
-    box.AddSection = function(self, args)
-        local name = type(args) == "table" and args[1] or args
-        self:AddLabel('── ' .. tostring(name) .. ' ──')
-        return {}
-    end
-    box.AddParagraph = function(self, args)
-        local title = args and args.Title or "Info"
-        local content = args and (args.Content or args.Desc or "") or ""
-        local lbl = self:AddLabel(title .. ': ' .. tostring(content))
-        -- retourne un objet avec :Set() et :SetDesc()
-        return {
-            Set = function(_, txt)
-                pcall(function() lbl:SetText(title .. ': ' .. tostring(txt)) end)
-            end,
-            SetDesc = function(_, txt)
-                pcall(function() lbl:SetText(title .. ': ' .. tostring(txt)) end)
-            end
-        }
-    end
-    box.AddTextBox = function(self, args)
-        self:AddInput(args.Name or "Input", {
-            Default = '',
-            Numeric = false,
-            Finished = false,
-            Text = args.PlaceholderText or '',
-            Tooltip = args.Name or '',
-            Callback = args.Callback or function() end,
-        })
-    end
-    return box
-end
-
--- Patch tous les groupboxes
-for _, box in ipairs({
-    InfoBox, FarmBox, FarmBoxR, QuestBox, QuestBoxR,
-    FishBox, SeaBox, RaceBox, IslandBox, IslandBoxR,
-    RaidBox, RaidBoxR, StatsBox, TeleBox, TeleBoxR,
-    StatusBox, VisualBox, VisualBoxR, ShopBox, ShopBoxR,
-    MiscBox, MiscBoxR
-}) do
-    patchSection(box)
-end
-
--- ============================================================
--- REMAP : les variables de tab Redz → groupbox Linoria
--- (AddToggle / AddButton / AddSlider / AddDropdown sont natifs Linoria)
--- ============================================================
--- On remplace les méthodes des tabs par celles du groupbox correspondant
--- pour que le code copié fonctionne sans modification
-
-local function remapTab(tab, leftBox, rightBox)
-    rightBox = rightBox or leftBox
+local function remapTab(tab)
     tab.AddToggle = function(_, args)
-        return leftBox:AddToggle(args.Name or args.Title or "Toggle", {
+        local name = args.Name or args.Title or "Toggle"
+        return tab:AddToggle(name, {
+            Title = name,
+            Description = args.Description or '',
             Default = args.Default or false,
-            Text = args.Name or args.Title or "Toggle",
-            Tooltip = args.Description or '',
             Callback = args.Callback or function() end,
         })
     end
+
     tab.AddButton = function(_, args)
-        return leftBox:AddButton(args.Title or args.Name or "Button", args.Callback or function() end)
+        local name = args.Title or args.Name or "Button"
+        return tab:AddButton({
+            Title = name,
+            Description = args.Description or '',
+            Callback = args.Callback or function() end,
+        })
     end
+
     tab.AddSlider = function(_, args)
-        return leftBox:AddSlider(args.Name or args.Title or "Slider", {
+        local name = args.Name or args.Title or "Slider"
+        return tab:AddSlider(name, {
+            Title = name,
+            Description = args.Description or '',
             Default = args.Default or args.Min or 0,
             Min = args.Min or 0,
             Max = args.Max or 100,
-            Suffix = '',
+            Rounding = 0,
             Callback = args.Callback or function() end,
         })
     end
+
     tab.AddDropdown = function(_, args)
-        return leftBox:AddDropdown(args.Name or "Dropdown", {
-            Default = args.Default or (args.Options and args.Options[1]) or '',
-            Values = args.Options or {},
+        local name = args.Name or "Dropdown"
+        local opts = args.Options or {}
+        return tab:AddDropdown(name, {
+            Title = name,
+            Description = args.Description or '',
+            Values = opts,
+            Default = args.Default or opts[1] or '',
             Callback = args.Callback or function() end,
         })
     end
+
     tab.AddSection = function(_, args)
-        local name = type(args) == "table" and args[1] or args
-        leftBox:AddLabel('── ' .. tostring(name) .. ' ──')
+        local name = type(args) == "table" and args[1] or tostring(args)
+        tab:AddParagraph({ Title = '— ' .. name .. ' —', Content = '' })
         return {}
     end
+
     tab.AddParagraph = function(_, args)
-        local title = args and args.Title or "Info"
-        local content = args and (args.Content or args.Desc or "") or ""
-        local lbl = leftBox:AddLabel(title .. ': ' .. tostring(content))
+        local title = (args and args.Title) or 'Info'
+        local content = (args and (args.Content or args.Desc)) or ''
+        local para = tab:AddParagraph({ Title = title, Content = tostring(content) })
         return {
             Set = function(_, txt)
-                pcall(function() lbl:SetText(title .. ': ' .. tostring(txt)) end)
+                pcall(function() para:SetContent(tostring(txt)) end)
             end,
             SetDesc = function(_, txt)
-                pcall(function() lbl:SetText(title .. ': ' .. tostring(txt)) end)
-            end
+                pcall(function() para:SetContent(tostring(txt)) end)
+            end,
         }
     end
+
     tab.AddTextBox = function(_, args)
-        leftBox:AddInput(args.Name or "Input", {
+        tab:AddInput(args.Name or 'Input', {
+            Title = args.Name or 'Input',
+            Description = args.PlaceholderText or '',
             Default = '',
             Numeric = false,
             Finished = false,
-            Text = args.PlaceholderText or '',
-            Tooltip = args.Name or '',
             Callback = args.Callback or function() end,
         })
     end
+
     tab.AddDiscordInvite = function(_, args)
-        leftBox:AddLabel('Discord: ' .. (args.Name or '') .. ' → ' .. (args.Invite or ''))
+        tab:AddParagraph({
+            Title = args.Name or 'Discord',
+            Content = args.Invite or ''
+        })
     end
 end
 
-remapTab(v484, InfoBox)
-remapTab(v485, FarmBox, FarmBoxR)
-remapTab(v487, QuestBox, QuestBoxR)
-remapTab(v486, FishBox)
-remapTab(v489, SeaBox)
-remapTab(v490, RaceBox)
-remapTab(v498, IslandBox, IslandBoxR)
-remapTab(v491, RaidBox, RaidBoxR)
-remapTab(v497, StatsBox)
-remapTab(v493, TeleBox, TeleBoxR)
-remapTab(v499, StatusBox)
-remapTab(v494, VisualBox, VisualBoxR)
-remapTab(v495, ShopBox, ShopBoxR)
-remapTab(v496, MiscBox, MiscBoxR)
-
-Library:Notify("Nameless Client chargé ! Appuie sur 'BC' pour cacher le menu.")
+remapTab(v484)
+remapTab(v485)
+remapTab(v487)
+remapTab(v486)
+remapTab(v489)
+remapTab(v490)
+remapTab(v498)
+remapTab(v491)
+remapTab(v497)
+remapTab(v493)
+remapTab(v499)
+remapTab(v494)
+remapTab(v495)
+remapTab(v496)
 
 -- ============================================================
 -- LOGIQUE ORIGINALE REDZ-LONGHIHI (inchangée ci-dessous)
--- =======================================
-pcall(function()
-=====================
+-- ============================================================
 
 Settings = Settings or {}
 
@@ -262,11 +208,11 @@ end
 
 JoinTeam()
 
-pcall(function()
-    hookfunction(require(game:GetService("ReplicatedStorage").Effect.Container.Death), function() end)
+hookfunction(require(game:GetService("ReplicatedStorage").Effect.Container.Death), function()
+    -- empty block
 end)
-pcall(function()
-    hookfunction(require(game:GetService("ReplicatedStorage").Effect.Container.Respawn), function() end)
+hookfunction(require(game:GetService("ReplicatedStorage").Effect.Container.Respawn), function()
+    -- empty block
 end)
 if game.PlaceId == 2753915549 or game.PlaceId == 85211729168715 then
     World1 = true
@@ -9400,14 +9346,12 @@ v494:AddToggle({
 local _ = v494:AddSection({"Esp"})
 local ESP_SIZE_FILE = "esp_size_save.txt"
 
-pcall(function()
 if isfile(ESP_SIZE_FILE) then
 	_G.ESPSize = tonumber(readfile(ESP_SIZE_FILE)) or 24
 else
 	_G.ESPSize = 24
 	writefile(ESP_SIZE_FILE, "24")
 end
-end)
 
 v494:AddSlider({
 	Name = "ESP Size",
@@ -9459,13 +9403,11 @@ local ESP_SAVE_FILE = "esp_players_save.txt"
 
 -- Estado salvo
 local ESPPlayer = false
-pcall(function()
 if isfile(ESP_SAVE_FILE) then
 	ESPPlayer = readfile(ESP_SAVE_FILE) == "true"
 else
 	writefile(ESP_SAVE_FILE, "false")
 end
-end)
 
 local Connections = {}
 
@@ -10438,21 +10380,17 @@ local SPEED_SAVE_FILE = "walkspeed_save.txt"
 local JUMP_SAVE_FILE = "jump_save.txt"
 
 -- carrega valores salvos
-pcall(function()
 if isfile(SPEED_SAVE_FILE) then
 	getgenv().WalkSpeedValue = tonumber(readfile(SPEED_SAVE_FILE)) or 58
 else
 	getgenv().WalkSpeedValue = 58
 end
-end)
 
-pcall(function()
 if isfile(JUMP_SAVE_FILE) then
 	getgenv().JumpValue = tonumber(readfile(JUMP_SAVE_FILE)) or 58
 else
 	getgenv().JumpValue = 58
 end
-end)
 
 local function v1135(v1133)
 	local v1134 = v1133:WaitForChild("Humanoid", 5)
@@ -10738,13 +10676,11 @@ end
 
 local FullBrightEnabled = false
 
-pcall(function()
 if isfile(FULLBRIGHT_SAVE_FILE) then
 	FullBrightEnabled = readfile(FULLBRIGHT_SAVE_FILE) == "true"
 else
 	writefile(FULLBRIGHT_SAVE_FILE, "false")
 end
-end)
 
 ApplyFullBright(FullBrightEnabled)
 
@@ -11010,25 +10946,20 @@ v496:AddToggle({
 })
 
 
-
-
 -- ============================================================
--- LINORIA : RENDER FINAL (CORRIGE SANS ERREUR)
+-- FLUENT : SAVE / INTERFACE MANAGER
 -- ============================================================
+SaveManager:SetLibrary(Fluent)
+InterfaceManager:SetLibrary(Fluent)
 
-local ThemeManager = loadstring(game:HttpGet('https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/ThemeManager.lua'))()
-local SaveManager  = loadstring(game:HttpGet('https://raw.githubusercontent.com/violin-suzutsuki/LinoriaLib/main/addons/SaveManager.lua'))()
-
-ThemeManager:SetLibrary(Library)
-SaveManager:SetLibrary(Library)
+InterfaceManager:BuildInterfaceSection(v496)
+SaveManager:BuildConfigSection(v496)
 
 SaveManager:SetFolder('NamelessClient')
+SaveManager:LoadAutoloadConfig()
 
-pcall(function()
-    if v496 then
-        SaveManager:BuildConfigSection(v496:AddLeftGroupbox('Config'))
-        ThemeManager:ApplyToTab(v496)
-    end
-end)
-
-Library:Render()
+Fluent:Notify({
+    Title = 'Nameless Client',
+    Content = 'Chargé ! Appuie sur BC pour toggle le menu.',
+    Duration = 5
+})
