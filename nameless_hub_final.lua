@@ -72,57 +72,77 @@ local v496 = Window:AddTab({ Title = 'Misc',        Icon = 'settings' })
 -- Fluent utilise :AddToggle, :AddButton, :AddSlider, :AddDropdown
 -- directement sur le tab (pas sur un groupbox)
 -- ============================================================
+-- counter pour generer des cles uniques
+local _keyCount = 0
+local function uniqueKey(prefix)
+    _keyCount = _keyCount + 1
+    return (prefix or "k") .. tostring(_keyCount)
+end
+
 local function remapTab(tab)
+    -- TOGGLE : Fluent utilise :OnChanged() pour le callback
     tab.AddToggle = function(_, args)
         local name = args.Name or args.Title or "Toggle"
-        return tab:AddToggle(name, {
+        local cb = args.Callback or function() end
+        local t = tab:AddToggle(uniqueKey("tog"), {
             Title = name,
             Description = args.Description or '',
             Default = args.Default or false,
-            Callback = args.Callback or function() end,
         })
+        t:OnChanged(function(v) pcall(cb, v) end)
+        return t
     end
 
+    -- BUTTON
     tab.AddButton = function(_, args)
         local name = args.Title or args.Name or "Button"
+        local cb = args.Callback or function() end
         return tab:AddButton({
             Title = name,
             Description = args.Description or '',
-            Callback = args.Callback or function() end,
+            Callback = function() pcall(cb) end,
         })
     end
 
+    -- SLIDER : Fluent utilise :OnChanged() pour le callback
     tab.AddSlider = function(_, args)
         local name = args.Name or args.Title or "Slider"
-        return tab:AddSlider(name, {
+        local cb = args.Callback or function() end
+        local s = tab:AddSlider(uniqueKey("sli"), {
             Title = name,
             Description = args.Description or '',
             Default = args.Default or args.Min or 0,
             Min = args.Min or 0,
             Max = args.Max or 100,
             Rounding = 0,
-            Callback = args.Callback or function() end,
         })
+        s:OnChanged(function(v) pcall(cb, v) end)
+        return s
     end
 
+    -- DROPDOWN : Fluent utilise :OnChanged() pour le callback
     tab.AddDropdown = function(_, args)
         local name = args.Name or "Dropdown"
         local opts = args.Options or {}
-        return tab:AddDropdown(name, {
+        local cb = args.Callback or function() end
+        local d = tab:AddDropdown(uniqueKey("dro"), {
             Title = name,
             Description = args.Description or '',
             Values = opts,
-            Default = args.Default or opts[1] or '',
-            Callback = args.Callback or function() end,
+            Default = args.Default or (opts[1] or ''),
         })
+        d:OnChanged(function(v) pcall(cb, v) end)
+        return d
     end
 
+    -- SECTION → paragraph separateur
     tab.AddSection = function(_, args)
         local name = type(args) == "table" and args[1] or tostring(args)
-        tab:AddParagraph({ Title = '— ' .. name .. ' —', Content = '' })
+        tab:AddParagraph({ Title = '━━ ' .. name .. ' ━━', Content = '' })
         return {}
     end
 
+    -- PARAGRAPH avec Set/SetDesc
     tab.AddParagraph = function(_, args)
         local title = (args and args.Title) or 'Info'
         local content = (args and (args.Content or args.Desc)) or ''
@@ -137,17 +157,20 @@ local function remapTab(tab)
         }
     end
 
+    -- TEXTBOX / INPUT
     tab.AddTextBox = function(_, args)
-        tab:AddInput(args.Name or 'Input', {
+        local cb = args.Callback or function() end
+        tab:AddInput(uniqueKey("inp"), {
             Title = args.Name or 'Input',
             Description = args.PlaceholderText or '',
             Default = '',
             Numeric = false,
             Finished = false,
-            Callback = args.Callback or function() end,
+            Callback = function(v) pcall(cb, v) end,
         })
     end
 
+    -- DISCORD INVITE → paragraph
     tab.AddDiscordInvite = function(_, args)
         tab:AddParagraph({
             Title = args.Name or 'Discord',
