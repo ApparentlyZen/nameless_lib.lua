@@ -33,11 +33,24 @@ end
 repeat
     local start = plr.PlayerGui:WaitForChild("Main"):WaitForChild("Loading") and game:IsLoaded()
     wait()
-until start
-World1 = game.PlaceId == 2753915549
-World2 = game.PlaceId == 4442272183
-World3 = game.PlaceId == 7449423635
-Sea = World1 or World2 or World3 or plr:Kick("❌ Error : A[12]Blox Fruits ❌")
+-- Détection intelligente par le nom du jeu
+local info = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId)
+local isBloxFruit = info.Name:find("Blox Fruits")
+
+-- On définit les mondes pour les fonctions de farm
+World1 = (game.PlaceId == 2753915549)
+World2 = (game.PlaceId == 4442272183)
+World3 = (game.PlaceId == 7449423635)
+
+-- SÉCURITÉ : Si c'est Blox Fruits, Sea est VRAI (Plus de Kick A[12])
+if isBloxFruit then
+    Sea = true
+else
+    -- Si tu es dans une dimension spéciale (ID inconnu), on force quand même
+    Sea = true 
+    -- On force World3 par défaut car le Leviathan et les events sont souvent liés au monde 3
+    World3 = true 
+end
 Marines = function()
     replicated.Remotes.CommF_:InvokeServer("SetTeam", "Marines")
 end
