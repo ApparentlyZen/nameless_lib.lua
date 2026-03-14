@@ -225,7 +225,9 @@ Library:Notify("Nameless Client chargé ! Appuie sur 'BC' pour cacher le menu.")
 
 -- ============================================================
 -- LOGIQUE ORIGINALE REDZ-LONGHIHI (inchangée ci-dessous)
--- ============================================================
+-- =======================================
+pcall(function()
+=====================
 
 Settings = Settings or {}
 
@@ -11007,6 +11009,9 @@ v496:AddToggle({
     end
 })
 
+
+
+end)
 
 -- ============================================================
 -- LINORIA : RENDER FINAL (OBLIGATOIRE POUR AFFICHER LE MENU)
