@@ -260,11 +260,11 @@ end
 
 JoinTeam()
 
-hookfunction(require(game:GetService("ReplicatedStorage").Effect.Container.Death), function()
-    -- empty block
+pcall(function()
+    hookfunction(require(game:GetService("ReplicatedStorage").Effect.Container.Death), function() end)
 end)
-hookfunction(require(game:GetService("ReplicatedStorage").Effect.Container.Respawn), function()
-    -- empty block
+pcall(function()
+    hookfunction(require(game:GetService("ReplicatedStorage").Effect.Container.Respawn), function() end)
 end)
 if game.PlaceId == 2753915549 or game.PlaceId == 85211729168715 then
     World1 = true
@@ -9398,12 +9398,14 @@ v494:AddToggle({
 local _ = v494:AddSection({"Esp"})
 local ESP_SIZE_FILE = "esp_size_save.txt"
 
+pcall(function()
 if isfile(ESP_SIZE_FILE) then
 	_G.ESPSize = tonumber(readfile(ESP_SIZE_FILE)) or 24
 else
 	_G.ESPSize = 24
 	writefile(ESP_SIZE_FILE, "24")
 end
+end)
 
 v494:AddSlider({
 	Name = "ESP Size",
@@ -9455,11 +9457,13 @@ local ESP_SAVE_FILE = "esp_players_save.txt"
 
 -- Estado salvo
 local ESPPlayer = false
+pcall(function()
 if isfile(ESP_SAVE_FILE) then
 	ESPPlayer = readfile(ESP_SAVE_FILE) == "true"
 else
 	writefile(ESP_SAVE_FILE, "false")
 end
+end)
 
 local Connections = {}
 
@@ -10432,17 +10436,21 @@ local SPEED_SAVE_FILE = "walkspeed_save.txt"
 local JUMP_SAVE_FILE = "jump_save.txt"
 
 -- carrega valores salvos
+pcall(function()
 if isfile(SPEED_SAVE_FILE) then
 	getgenv().WalkSpeedValue = tonumber(readfile(SPEED_SAVE_FILE)) or 58
 else
 	getgenv().WalkSpeedValue = 58
 end
+end)
 
+pcall(function()
 if isfile(JUMP_SAVE_FILE) then
 	getgenv().JumpValue = tonumber(readfile(JUMP_SAVE_FILE)) or 58
 else
 	getgenv().JumpValue = 58
 end
+end)
 
 local function v1135(v1133)
 	local v1134 = v1133:WaitForChild("Humanoid", 5)
@@ -10728,11 +10736,13 @@ end
 
 local FullBrightEnabled = false
 
+pcall(function()
 if isfile(FULLBRIGHT_SAVE_FILE) then
 	FullBrightEnabled = readfile(FULLBRIGHT_SAVE_FILE) == "true"
 else
 	writefile(FULLBRIGHT_SAVE_FILE, "false")
 end
+end)
 
 ApplyFullBright(FullBrightEnabled)
 
