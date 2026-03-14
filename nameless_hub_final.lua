@@ -10992,16 +10992,16 @@ spawn(function()
             -- Notification spawn
             if lev and not wasSpawned then
                 wasSpawned = true
-                LevSpawn_LEV:SetDesc(" ⚠️ Leviathan SPAWNED !")
+                LevSpawn_LEV:SetDesc(" [!] Leviathan SPAWNED !")
             elseif not lev then
                 wasSpawned = false
                 LevSpawn_LEV:SetDesc(" Not Spawned")
             end
             -- Frozen Dimension
             if workspace._WorldOrigin.Locations:FindFirstChild('Frozen Dimension') then
-                FloD_LEV:SetDesc(' Frozen Dimension : Active ✅')
+                FloD_LEV:SetDesc(' Frozen Dimension : Active [ON]')
             else
-                FloD_LEV:SetDesc(' Frozen Dimension : Inactive ❌')
+                FloD_LEV:SetDesc(' Frozen Dimension : Inactive [OFF]')
             end
         end)
     end
