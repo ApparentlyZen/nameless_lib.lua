@@ -10915,7 +10915,7 @@ _G.LevGunX   = true
 Tabs.Leviathan:AddSection("Leviathan / Spy")
 local SPYING_LEV = Tabs.Leviathan:AddParagraph({
     Title = " Spy Status ",
-    Content = "Loading..."
+    Content = ""
 })
 spawn(function()
     while wait(.2) do
@@ -10948,15 +10948,15 @@ Tabs.Leviathan:AddButton({
 Tabs.Leviathan:AddSection("Live Status")
 local LevHP_LEV = Tabs.Leviathan:AddParagraph({
     Title = " Leviathan HP ",
-    Content = "Not Spawned"
+    Content = ""
 })
 local LevSpawn_LEV = Tabs.Leviathan:AddParagraph({
     Title = " Leviathan Spawn ",
-    Content = "Not Spawned"
+    Content = ""
 })
 local FloD_LEV = Tabs.Leviathan:AddParagraph({
     Title = " Frozen Dimension ",
-    Content = "Loading..."
+    Content = ""
 })
 spawn(function()
     local wasSpawned = false
