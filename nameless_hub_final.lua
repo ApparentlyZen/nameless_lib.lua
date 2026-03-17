@@ -1,843 +1,1155 @@
--- =====================================================================
--- ✧ GOTCHA.EXE | ELITE EXTERNAL (SKEET/GAMESENSE STYLE) ✧
--- =====================================================================
+-- █▀▀ ▄▀█ █░░ ▄▀█ █▀▀ ▀█▀ █ █▀▀   █▀▄ █░█ █▀▄▀█ █▀█ █▀▀ █▀█
+-- █▄█ █▀█ █▄▄ █▀█ █▄▄ ░█░ █ █▄▄   █▄▀ █▄█ █░▀░█ █▀▀ ██▄ █▀▄
+-- Version v1.7.5
+-- https://discord.gg/qy2neXET6W
 
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
-local player = Players.LocalPlayer
-local Mouse = player:GetMouse()
+local fenv = getfenv()
+local env = _G
+local Players = game:GetService('Players')
+local Lighting = game:GetService('Lighting')
+local RunService = game:GetService('RunService')
+local UserInputService = game:GetService('UserInputService')
+local Workspace = game:GetService('Workspace')
+local TweenService = game:GetService('TweenService')
+local SoundService = game:GetService('SoundService')
+local StarterGui = game:GetService('StarterGui')
+local v12 = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+local TeleportService = game:GetService('TeleportService')
+local Debris = game:GetService('Debris')
+local v15 = settings()
+local blureffect_604 = Instance.new("BlurEffect")
 
-if CoreGui:FindFirstChild("GotchaElite") then CoreGui.GotchaElite:Destroy() end
+blureffect_604.Name = "VenusBlur"
+blureffect_604.Size = 0
+blureffect_604.Enabled = false
+blureffect_604.Parent = blureffect_604
+local screengui_353 = Instance.new("ScreenGui")
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "GotchaElite"
-ScreenGui.Parent = (cloneref and cloneref(CoreGui) or CoreGui)
+screengui_353.Name = "UniversHubLoading"
+screengui_353.ResetOnSpawn = false
+screengui_353.IgnoreGuiInset = true
+screengui_353.Parent = screengui_353
+local videoframe_253 = Instance.new("VideoFrame")
 
-local Theme = {
-    Bg_Out = Color3.fromRGB(12, 12, 12),
-    Bg_In  = Color3.fromRGB(20, 20, 20),
-    Tab_Bg = Color3.fromRGB(16, 16, 16),
-    Accent = Color3.fromRGB(165, 255, 0),
-    Text   = Color3.fromRGB(240, 240, 240),
-    Border = Color3.fromRGB(40, 40, 40),
-    Font   = Enum.Font.Code
-}
+videoframe_253.Name = "DarkBackground"
+videoframe_253.Size = UDim2.fromScale(1, 1)
+videoframe_253.Video = "rbxassetid://5670799859"
+videoframe_253.Looped = true
+videoframe_253.Playing = true
+videoframe_253.Volume = 0
+videoframe_253.BorderSizePixel = 0
+videoframe_253.BackgroundTransparency = 1
+videoframe_253.Parent = videoframe_253
+local frame_160 = Instance.new("Frame")
 
--- ========== VARIABLES ==========
-local hitboxEnabled = false
-local hitboxSize = 20
-local noAnimationEnabled = false
-local autoClickEnabled = false
-local soruAutoAimEnabled = true
-local fakeKorbloxEnabled = false
-local fakeKorbloxVersion = "V1"
-local fakeHeadlessEnabled = false
-local fakeHeadlessVersion = "V1"
-local stretchedEnabled = false
-local stretchedAmount = 0.65
-local removeGfxEnabled = false
-local spinPlayerEnabled = false
-local spinSpeed = 50
-local skinStealerEnabled = false
-local fontChangerEnabled = false
-local fontPreset = "GothamSsm"
-local targetPlayerName = ""
-local hitboxParts = {}
-local playerConnections = {}
-local autoClickConnection, animationConnection, spinConnection = nil, nil, nil
-local removeGfxConnection, stretchConnection = nil, nil
-local korbloxMeshes = {}
-local originalAppearance, stolenAccessories, hiddenHairAccessories = {}, {}, {}
-local updatedFonts = {}
-local fontConn, gfxWorkspaceConn, gfxPlayersConn = nil, nil, nil
-local CurrentTarget = nil
+frame_160.Name = "CenterContainer"
+frame_160.Size = UDim2.new(0.6, 0, 0.5, 0)
+frame_160.Position = UDim2.new(0.5, 0, 0.5, 0)
+frame_160.AnchorPoint = Vector2.new(0.5, 0.5)
+frame_160.BackgroundTransparency = 1
+frame_160.Parent = frame_160
+local textlabel_864 = Instance.new("TextLabel")
 
--- Sanguine Glitch
-local multiEnabled = false
-local multiPower = 1000
-local multiDuration = 0.6
-local multiCharging = false
-local multiChargeStart = 0
+textlabel_864.Size = UDim2.new(1, 0, 0.2, 0)
+textlabel_864.Position = UDim2.new(0.5, 0, 0.5, 0)
+textlabel_864.AnchorPoint = Vector2.new(0.5, 0.5)
+textlabel_864.BackgroundTransparency = 1
+textlabel_864.Text = "loading config..."
+textlabel_864.TextColor3 = Color3.fromRGB(255, 255, 255)
+textlabel_864.TextSize = 0
+textlabel_864.Font = Font.Highway
+textlabel_864.Parent = textlabel_864
+textlabel_864.TextTransparency = 1
+local textlabel_509 = Instance.new("TextLabel")
 
--- ========== SORU AUTO AIM ==========
-getgenv().SoruAutoAim = true
-task.spawn(function()
-    while true do
-        task.wait(0.2)
-        if getgenv().SoruAutoAim then
-            local closest, shortestDist = nil, 300
-            local myPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-            if myPart then
-                for _, v in pairs(Players:GetPlayers()) do
-                    if v ~= player and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                        local root = v.Character.HumanoidRootPart
-                        local dist = (root.Position - myPart.Position).Magnitude
-                        if dist < shortestDist then shortestDist = dist closest = root end
-                    end
-                end
-            end
-            CurrentTarget = closest
-        else
-            CurrentTarget = nil
-        end
-    end
+textlabel_509.Size = UDim2.new(1, 0, 0.15, 0)
+textlabel_509.Position = UDim2.new(0.5, 0, 0.15, 0)
+textlabel_509.AnchorPoint = Vector2.new(0.5, 0.5)
+textlabel_509.BackgroundTransparency = 1
+textlabel_509.Text = "loading config0/10"
+textlabel_509.TextColor3 = Color3.fromRGB(255, 255, 255)
+textlabel_509.TextSize = 26
+textlabel_509.Font = Font.Highway
+textlabel_509.Parent = textlabel_509
+textlabel_509.Visible = false
+textlabel_509.TextTransparency = 1
+local frame_456 = Instance.new("Frame")
+
+frame_456.Size = UDim2.new(0.6, 0, 0.1, 0)
+frame_456.Position = UDim2.new(0.5, 0, 0.5, 0)
+frame_456.AnchorPoint = Vector2.new(0.5, 0.5)
+frame_456.BackgroundTransparency = 1
+frame_456.Parent = frame_456
+frame_456.Visible = false
+local uilistlayout_61 = Instance.new("UIListLayout")
+
+uilistlayout_61.FillDirection = Enum.FillDirection.Horizontal
+uilistlayout_61.HorizontalAlignment = Enum.HorizontalAlignment.Center
+uilistlayout_61.VerticalAlignment = Enum.VerticalAlignment.Center
+uilistlayout_61.Padding = UDim.new(0, 8)
+local frame_169 = Instance.new("Frame")
+
+frame_169.Size = UDim2.new(0, 50, 0, 50)
+frame_169.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+frame_169.BackgroundTransparency = 1
+frame_169.Parent = frame_169
+local frame_545 = Instance.new("Frame")
+
+frame_545.Size = UDim2.new(0, 50, 0, 50)
+frame_545.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+frame_545.BackgroundTransparency = 1
+frame_545.Parent = frame_545
+local frame_285 = Instance.new("Frame")
+
+frame_285.Size = UDim2.new(0, 50, 0, 50)
+frame_285.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+frame_285.BackgroundTransparency = 1
+frame_285.Parent = frame_285
+local frame_461 = Instance.new("Frame")
+
+frame_461.Size = UDim2.new(0, 50, 0, 50)
+frame_461.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+frame_461.BackgroundTransparency = 1
+frame_461.Parent = frame_461
+local frame_705 = Instance.new("Frame")
+
+frame_705.Size = UDim2.new(0, 50, 0, 50)
+frame_705.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+frame_705.BackgroundTransparency = 1
+frame_705.Parent = frame_705
+local frame_169 = Instance.new("Frame")
+
+frame_169.Size = UDim2.new(0, 50, 0, 50)
+frame_169.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+frame_169.BackgroundTransparency = 1
+frame_169.Parent = frame_169
+local textlabel_475 = Instance.new("TextLabel")
+
+textlabel_475.Size = UDim2.new(0, 50, 0, 50)
+textlabel_475.Position = UDim2.new(0.5, 0, 0.5, 0)
+textlabel_475.AnchorPoint = Vector2.new(1, 0.5)
+textlabel_475.BackgroundTransparency = 1
+textlabel_475.Text = "『"
+textlabel_475.TextColor3 = Color3.fromRGB(255, 255, 255)
+textlabel_475.TextSize = 65
+textlabel_475.Font = Font.Highway
+textlabel_475.TextTransparency = 1
+local textlabel_240 = Instance.new("TextLabel")
+
+textlabel_240.Size = UDim2.new(0, 50, 0, 50)
+textlabel_240.Position = UDim2.new(0.5, 0, 0.5, 0)
+textlabel_240.AnchorPoint = Vector2.new(0, 0.5)
+textlabel_240.BackgroundTransparency = 1
+textlabel_240.Text = "』"
+textlabel_240.TextColor3 = Color3.fromRGB(255, 255, 255)
+textlabel_240.TextSize = 65
+textlabel_240.Font = Font.Highway
+textlabel_240.TextTransparency = 1
+local textbutton_123 = Instance.new("TextButton")
+
+textbutton_123.Name = "SkipButton"
+textbutton_123.Size = UDim2.new(0, 80, 0, 30)
+textbutton_123.Position = UDim2.new(0.5, 0, 0.75, 0)
+textbutton_123.AnchorPoint = Vector2.new(0.5, 0.5)
+textbutton_123.BackgroundTransparency = 1
+textbutton_123.Text = "「skip」"
+textbutton_123.TextColor3 = Color3.fromRGB(255, 255, 255)
+textbutton_123.TextSize = 30
+textbutton_123.Font = Font.Highway
+textbutton_123.TextTransparency = 1
+textbutton_123.Visible = false
+local sound_418 = Instance.new("Sound")
+
+sound_418.Name = "LoadingMusic"
+sound_418.SoundId = "rbxassetid://15930255433"
+sound_418.Volume = 0.5
+sound_418.Looped = true
+sound_418.Parent = sound_418
+local screengui_950 = Instance.new("ScreenGui")
+
+screengui_950.Name = "VenusHubSingle"
+screengui_950.ResetOnSpawn = false
+screengui_950.IgnoreGuiInset = true
+screengui_950.Parent = screengui_950
+local imagebutton_947 = Instance.new("ImageButton")
+
+imagebutton_947.Name = "VenusLauncher"
+imagebutton_947.Size = UDim2.new(0, 56, 0, 56)
+imagebutton_947.Position = UDim2.new(0.02, 0, 1, -66)
+imagebutton_947.AnchorPoint = Vector2.new(0, 1)
+imagebutton_947.BackgroundColor3 = Color3.fromRGB(28, 16, 48)
+imagebutton_947.BorderSizePixel = 0
+imagebutton_947.Image = "rbxassetid://135187475680901"
+local uicorner_919 = Instance.new("UICorner")
+
+uicorner_919.CornerRadius = UDim.new(0, 28)
+uicorner_919.Parent = uicorner_919
+local uistroke_529 = Instance.new("UIStroke")
+
+uistroke_529.Thickness = 1
+uistroke_529.Color = Color3.fromRGB(158, 56, 255)
+uistroke_529.Transparency = 0
+uistroke_529.Parent = uistroke_529
+imagebutton_947.Visible = false
+textbutton_123.MouseButton1Click:Connect(function(h, b)
+    local v1 = StarterGui:SetCore("SendNotification", {
+    Text = "✅ Script Graphics successfully loaded.",
+    Duration = 5,
+    Title = "UniversHub by bao9002"
+})
+    local v2 = StarterGui:SetCore("SendNotification", {
+    Text = "https://github.com/Uranus197",
+    Duration = 5,
+    Title = "INFORMATION ABOUT ME🚀"
+})
+    local v3 = TweenService:Create(TweenService, {}, TweenInfo.new(1), {
+    Volume = 0
+})
+    local v4 = v3:Play()
+    local v5 = TweenService:Create(TweenService, {}, TweenInfo.new(1), {
+    BackgroundTransparency = 1
+})
 end)
+coroutine.wrap(function(h)
+    local v1 = TweenService:Create(TweenService, {}, TweenInfo.new(1), {
+    BackgroundTransparency = 0
+})
+    local v2 = v1:Play()
+    local v3 = v1.Completed:Wait()
+    task.wait(0.5)
+    local v5 = sound_418.Play({})
+    textlabel_475.TextTransparency = 0
+    textlabel_240.TextTransparency = 0
+    local v8 = TweenService:Create(TweenService, {}, TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+    Position = UDim2.new(0.5, -180, 0.5, 0)
+})
+    local v9 = v8:Play()
+    local v10 = TweenService:Create(TweenService, {}, TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+    Position = UDim2.new(0.5, 180, 0.5, 0)
+})
+    local v11 = v10:Play()
+    local v12 = v10.Completed:Wait()
+    textlabel_864.TextSize = 0
+    textlabel_864.TextTransparency = 0
+    local v15 = TweenService:Create(TweenService, {}, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    TextSize = 48
+})
+    local v16 = v15:Play()
+    local v17 = v15.Completed:Wait()
+    task.wait(0.3)
+    local v19 = TweenService:Create(TweenService, {}, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut), {
+    Position = UDim2.new(0.5, 0, 0.15, 0),
+    TextSize = 26
+})
+    local v20 = v19:Play()
+    task.wait(0.5)
+    textlabel_864.Visible = false
+    textlabel_509.Visible = true
+    textlabel_509.TextTransparency = 0
+    frame_456.Visible = true
+    textbutton_123.Visible = true
+    local v27 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    TextTransparency = 0
+})
+    textbutton_123.Size = UDim2.new(0, 180, 0, 50)
+    local v29 = v27:Play()
+    task.wait(0.3)
+    local v31 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+    TextTransparency = 0.5
+})
+    local v32 = v31:Play()
+    local v33 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true), {
+    TextTransparency = 0.5
+})
+    local v34 = v33:Play()
+    textlabel_509.Text = "loading config10/10"
+    local v36 = v33.Cancel(v33)
+    textlabel_509.TextTransparency = 0
+    textlabel_509.Text = "complete"
+    task.wait(0.5)
+    local v40 = v31.Cancel(v31)
+    local v41 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3, Enum.EasingStyle.Linear), {
+    TextTransparency = 1
+})
+    local v42 = v41:Play()
+    local v43 = TweenService:Create(TweenService, {}, v41.TweenInfo, {
+    BackgroundTransparency = 1
+})
+    local v44 = v43:Play()
+    local v45 = TweenService:Create(TweenService, {}, v41.TweenInfo, {
+    BackgroundTransparency = 1
+})
+    local v46 = v45:Play()
+    local v47 = TweenService:Create(TweenService, {}, v41.TweenInfo, {
+    BackgroundTransparency = 1
+})
+    local v48 = v47:Play()
+    local v49 = TweenService:Create(TweenService, {}, v41.TweenInfo, {
+    BackgroundTransparency = 1
+})
+    local v50 = v49:Play()
+    local v51 = TweenService:Create(TweenService, {}, v41.TweenInfo, {
+    BackgroundTransparency = 1
+})
+    local v52 = v51:Play()
+    local v53 = TweenService:Create(TweenService, {}, v41.TweenInfo, {
+    BackgroundTransparency = 1
+})
+    local v54 = v53:Play()
+    local v55 = TweenService:Create(TweenService, {}, v41.TweenInfo, {
+    TextTransparency = 1
+})
+    local v56 = v55:Play()
+    local v57 = TweenService:Create(TweenService, {}, v41.TweenInfo, {
+    TextTransparency = 1
+})
+    local v58 = v57:Play()
+    local v59 = TweenService:Create(TweenService, {}, v41.TweenInfo, {
+    TextTransparency = 1
+})
+    local v60 = v59:Play()
+    task.wait(0.5)
+    local v62 = frame_160.Destroy({})
+    local imagelabel_503 = Instance.new("ImageLabel")
 
--- ========== HOOKS ==========
-local mt = getrawmetatable(game)
-local oldNamecall = mt.__namecall
-local oldIndex = mt.__index
-setreadonly(mt, false)
-mt.__namecall = newcclosure(function(self, ...)
-    local method = getnamecallmethod()
-    local args = {...}
-    if method == "InvokeServer" and self.Parent and tostring(self.Parent) == "Humanoid" then
-        if getgenv().SoruAutoAim and CurrentTarget then
-            for i, arg in pairs(args) do
-                if typeof(arg) == "Vector3" then args[i] = CurrentTarget.Position end
-            end
-        end
-    end
-    return oldNamecall(self, unpack(args))
+    imagelabel_503.Size = UDim2.fromScale(0.22, 0.22)
+    imagelabel_503.Position = UDim2.fromScale(0.5, 0.5)
+    imagelabel_503.AnchorPoint = Vector2.new(0.5, 0.5)
+    imagelabel_503.BackgroundTransparency = 1
+    imagelabel_503.Image = "rbxassetid://133736456706911"
+    imagelabel_503.Rotation = 10
+    imagelabel_503.ZIndex = 3
+    local uiaspectratioconstraint_179 = Instance.new("UIAspectRatioConstraint")
+
+    uiaspectratioconstraint_179.AspectRatio = 1
+    local uicorner_632 = Instance.new("UICorner")
+
+    uicorner_632.CornerRadius = UDim.new(0.25, 0)
+    local uistroke_107 = Instance.new("UIStroke")
+
+    uistroke_107.Color = Color3.fromRGB(255, 255, 255)
+    uistroke_107.Thickness = 1.5
+    uistroke_107.Transparency = 0.6
+    local frame_531 = Instance.new("Frame")
+
+    frame_531.Size = UDim2.fromScale(0.6, 0.25)
+    frame_531.Position = UDim2.fromScale(0.65, 0.5)
+    frame_531.AnchorPoint = Vector2.new(0.5, 0.5)
+    frame_531.BackgroundTransparency = 1
+    local textlabel_884 = Instance.new("TextLabel")
+
+    textlabel_884.Size = UDim2.fromScale(0.085, 0.6)
+    textlabel_884.Position = UDim2.fromScale(0.0, 0.5)
+    textlabel_884.AnchorPoint = Vector2.new(0.5, 0.5)
+    textlabel_884.BackgroundTransparency = 1
+    textlabel_884.Text = "U"
+    textlabel_884.Font = Font.GothamBold
+    textlabel_884.TextScaled = true
+    textlabel_884.TextColor3 = Color3.new(1, 1, 1)
+    textlabel_884.TextTransparency = 1
+    local textlabel_267 = Instance.new("TextLabel")
+
+    textlabel_267.Size = UDim2.fromScale(0.085, 0.6)
+    textlabel_267.Position = UDim2.fromScale(0.055, 0.5)
+    textlabel_267.AnchorPoint = Vector2.new(0.5, 0.5)
+    textlabel_267.BackgroundTransparency = 1
+    textlabel_267.Text = "n"
+    textlabel_267.Font = Font.GothamBold
+    textlabel_267.TextScaled = true
+    textlabel_267.TextColor3 = Color3.new(1, 1, 1)
+    textlabel_267.TextTransparency = 1
+    local textlabel_396 = Instance.new("TextLabel")
+
+    textlabel_396.Size = UDim2.fromScale(0.085, 0.6)
+    textlabel_396.Position = UDim2.fromScale(0.11, 0.5)
+    textlabel_396.AnchorPoint = Vector2.new(0.5, 0.5)
+    textlabel_396.BackgroundTransparency = 1
+    textlabel_396.Text = "i"
+    textlabel_396.Font = Font.GothamBold
+    textlabel_396.TextScaled = true
+    textlabel_396.TextColor3 = Color3.new(1, 1, 1)
+    textlabel_396.TextTransparency = 1
+    local textlabel_393 = Instance.new("TextLabel")
+
+    textlabel_393.Size = UDim2.fromScale(0.085, 0.6)
+    textlabel_393.Position = UDim2.fromScale(0.165, 0.5)
+    textlabel_393.AnchorPoint = Vector2.new(0.5, 0.5)
+    textlabel_393.BackgroundTransparency = 1
+    textlabel_393.Text = "v"
+    textlabel_393.Font = Font.GothamBold
+    textlabel_393.TextScaled = true
+    textlabel_393.TextColor3 = Color3.new(1, 1, 1)
+    textlabel_393.TextTransparency = 1
+    local textlabel_723 = Instance.new("TextLabel")
+
+    textlabel_723.Size = UDim2.fromScale(0.085, 0.6)
+    textlabel_723.Position = UDim2.fromScale(0.22, 0.5)
+    textlabel_723.AnchorPoint = Vector2.new(0.5, 0.5)
+    textlabel_723.BackgroundTransparency = 1
+    textlabel_723.Text = "e"
+    textlabel_723.Font = Font.GothamBold
+    textlabel_723.TextScaled = true
+    textlabel_723.TextColor3 = Color3.new(1, 1, 1)
+    textlabel_723.TextTransparency = 1
+    local textlabel_456 = Instance.new("TextLabel")
+
+    textlabel_456.Size = UDim2.fromScale(0.085, 0.6)
+    textlabel_456.Position = UDim2.fromScale(0.275, 0.5)
+    textlabel_456.AnchorPoint = Vector2.new(0.5, 0.5)
+    textlabel_456.BackgroundTransparency = 1
+    textlabel_456.Text = "r"
+    textlabel_456.Font = Font.GothamBold
+    textlabel_456.TextScaled = true
+    textlabel_456.TextColor3 = Color3.new(1, 1, 1)
+    textlabel_456.TextTransparency = 1
+    local textlabel_562 = Instance.new("TextLabel")
+
+    textlabel_562.Size = UDim2.fromScale(0.085, 0.6)
+    textlabel_562.Position = UDim2.fromScale(0.33, 0.5)
+    textlabel_562.AnchorPoint = Vector2.new(0.5, 0.5)
+    textlabel_562.BackgroundTransparency = 1
+    textlabel_562.Text = "s"
+    textlabel_562.Font = Font.GothamBold
+    textlabel_562.TextScaled = true
+    textlabel_562.TextColor3 = Color3.new(1, 1, 1)
+    textlabel_562.TextTransparency = 1
+    local textlabel_268 = Instance.new("TextLabel")
+
+    textlabel_268.Size = UDim2.fromScale(0.085, 0.6)
+    textlabel_268.Position = UDim2.fromScale(0.385, 0.5)
+    textlabel_268.AnchorPoint = Vector2.new(0.5, 0.5)
+    textlabel_268.BackgroundTransparency = 1
+    textlabel_268.Text = "H"
+    textlabel_268.Font = Font.GothamBold
+    textlabel_268.TextScaled = true
+    textlabel_268.TextColor3 = Color3.new(1, 1, 1)
+    textlabel_268.TextTransparency = 1
+    local textlabel_741 = Instance.new("TextLabel")
+
+    textlabel_741.Size = UDim2.fromScale(0.085, 0.6)
+    textlabel_741.Position = UDim2.fromScale(0.44, 0.5)
+    textlabel_741.AnchorPoint = Vector2.new(0.5, 0.5)
+    textlabel_741.BackgroundTransparency = 1
+    textlabel_741.Text = "u"
+    textlabel_741.Font = Font.GothamBold
+    textlabel_741.TextScaled = true
+    textlabel_741.TextColor3 = Color3.new(1, 1, 1)
+    textlabel_741.TextTransparency = 1
+    local textlabel_24 = Instance.new("TextLabel")
+
+    textlabel_24.Size = UDim2.fromScale(0.085, 0.6)
+    textlabel_24.Position = UDim2.fromScale(0.495, 0.5)
+    textlabel_24.AnchorPoint = Vector2.new(0.5, 0.5)
+    textlabel_24.BackgroundTransparency = 1
+    textlabel_24.Text = "b"
+    textlabel_24.Font = Font.GothamBold
+    textlabel_24.TextScaled = true
+    textlabel_24.TextColor3 = Color3.new(1, 1, 1)
+    textlabel_24.TextTransparency = 1
+    local textbutton_973 = Instance.new("TextButton")
+
+    textbutton_973.Size = UDim2.fromScale(0.18, 0.07)
+    textbutton_973.Position = UDim2.fromScale(0.5, 0.72)
+    textbutton_973.AnchorPoint = Vector2.new(0.5, 0.5)
+    textbutton_973.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    textbutton_973.Text = "【 PLAY 】"
+    textbutton_973.Font = Font.GothamBold
+    textbutton_973.TextScaled = true
+    textbutton_973.TextColor3 = Color3.new(1, 1, 1)
+    textbutton_973.TextTransparency = 1
+    textbutton_973.BackgroundTransparency = 1
+    local uicorner_909 = Instance.new("UICorner")
+
+    uicorner_909.CornerRadius = UDim.new(0.4, 0)
+    textbutton_973.MouseEnter:Connect(function(h, b, u)
+    local v1 = TweenService:Create(TweenService, {}, TweenInfo.new(0.2), {
+    Size = UDim2.fromScale(0.19, 0.075),
+    BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+})
+    local v2 = v1:Play()
 end)
-mt.__index = newcclosure(function(t, k)
-    if getgenv().SoruAutoAim and t == Mouse and CurrentTarget then
-        if k == "Hit" then return CurrentTarget.CFrame end
-        if k == "Target" then return CurrentTarget end
-    end
-    return oldIndex(t, k)
+    textbutton_973.MouseLeave:Connect(function(arg1, arg2)
+    local v1 = TweenService:Create(TweenService, {}, TweenInfo.new(0.2), {
+    Size = UDim2.fromScale(0.18, 0.07),
+    BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+})
+    local v2 = v1:Play()
 end)
-setreadonly(mt, true)
-
--- ========== HITBOX ==========
-local function createInvisibleHitbox(character)
-    if not character then return end
-    local hrp = character:WaitForChild("HumanoidRootPart", 5)
-    if not hrp then return end
-    if hitboxParts[character] then pcall(function() hitboxParts[character]:Destroy() end) end
-    local p = Instance.new("Part")
-    p.Name = "ExpandedHitbox"
-    p.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-    p.CFrame = hrp.CFrame p.Transparency = 1 p.CanCollide = false
-    p.Anchored = false p.Massless = true p.CastShadow = false
-    local w = Instance.new("WeldConstraint")
-    w.Part0 = hrp w.Part1 = p w.Parent = p
-    p.Parent = character
-    hitboxParts[character] = p
-end
-local function removeHitbox(character)
-    if hitboxParts[character] then pcall(function() hitboxParts[character]:Destroy() end) hitboxParts[character] = nil end
-end
-local function setupPlayer(op)
-    if op == player then return end
-    if playerConnections[op] then for _, c in pairs(playerConnections[op]) do pcall(function() c:Disconnect() end) end end
-    playerConnections[op] = {}
-    table.insert(playerConnections[op], op.CharacterAdded:Connect(function(char)
-        task.wait(1) if hitboxEnabled then createInvisibleHitbox(char) end
-    end))
-    if op.Character then task.spawn(function() task.wait(1) if hitboxEnabled then createInvisibleHitbox(op.Character) end end) end
-end
-
--- ========== NO ANIMATION ==========
-local function disableAllAnimations()
-    if animationConnection then animationConnection:Disconnect() end
-    animationConnection = RunService.Heartbeat:Connect(function()
-        if not noAnimationEnabled or not player.Character then return end
-        pcall(function()
-            local hum = player.Character:FindFirstChildOfClass("Humanoid")
-            if not hum then return end
-            local anim = hum:FindFirstChildOfClass("Animator")
-            if anim then for _, t in pairs(anim:GetPlayingAnimationTracks()) do t:Stop() t:Destroy() end end
-            local a = player.Character:FindFirstChild("Animate")
-            if a then a:Destroy() end
-        end)
-    end)
-end
-
--- ========== AUTO CLICK ==========
-local function hasSwordEquipped()
-    if not player.Character then return false end
-    for _, t in pairs(player.Character:GetChildren()) do
-        if t:IsA("Tool") then
-            local n = t.Name:lower()
-            if n:find("sword") or n:find("katana") or n:find("blade") or n:find("cutlass") then return true end
-        end
-    end
-    return false
-end
-local function startAutoClick()
-    if autoClickConnection then autoClickConnection:Disconnect() end
-    autoClickConnection = RunService.Heartbeat:Connect(function()
-        if not autoClickEnabled then return end
-        if hasSwordEquipped() then
-            pcall(function()
-                local vim = game:GetService("VirtualInputManager")
-                vim:SendMouseButtonEvent(0, 0, 0, true, game, 0)
-                task.wait(0.01)
-                vim:SendMouseButtonEvent(0, 0, 0, false, game, 0)
-            end)
-            task.wait(0.1)
-        end
-    end)
-end
-
--- ========== FAKE KORBLOX ==========
-local function applyFakeKorblox()
-    if not player.Character then return end
-    local rl = player.Character:FindFirstChild("RightUpperLeg")
-    local rl2 = player.Character:FindFirstChild("RightLowerLeg")
-    local rf = player.Character:FindFirstChild("RightFoot")
-    if rl then
-        rl.Transparency = 1
-        for _, c in pairs(rl:GetChildren()) do if c:IsA("SpecialMesh") then c:Destroy() end end
-        local mesh = Instance.new("SpecialMesh")
-        mesh.MeshId = "rbxassetid://139607718" mesh.TextureId = "rbxassetid://139607673"
-        mesh.Scale = Vector3.new(1,1,1) mesh.Parent = rl
-        table.insert(korbloxMeshes, mesh)
-    end
-    if rl2 then rl2.Transparency = 1 end
-    if rf then rf.Transparency = 1 end
-    if fakeKorbloxVersion == "V2" then
-        for _, n in pairs({"LeftUpperLeg","LeftLowerLeg","LeftFoot"}) do
-            local p = player.Character:FindFirstChild(n) if p then p.Transparency = 1 end
-        end
-    end
-end
-local function removeFakeKorblox()
-    if not player.Character then return end
-    for _, m in pairs(korbloxMeshes) do pcall(function() m:Destroy() end) end
-    korbloxMeshes = {}
-    for _, n in pairs({"RightUpperLeg","RightLowerLeg","RightFoot","LeftUpperLeg","LeftLowerLeg","LeftFoot"}) do
-        local p = player.Character:FindFirstChild(n) if p then p.Transparency = 0 end
-    end
-end
-
--- ========== FAKE HEADLESS ==========
-local function applyFakeHeadless()
-    if not player.Character then return end
-    local head = player.Character:FindFirstChild("Head")
-    if head then head.Transparency = 1 local face = head:FindFirstChild("face") if face then face.Transparency = 1 end end
-    if fakeHeadlessVersion == "V2" then
-        hiddenHairAccessories = {}
-        for _, obj in pairs(player.Character:GetChildren()) do
-            if obj:IsA("Accessory") then
-                local handle = obj:FindFirstChild("Handle")
-                if handle then handle.Transparency = 1 table.insert(hiddenHairAccessories, handle) end
-            end
-        end
-    end
-end
-local function removeFakeHeadless()
-    if not player.Character then return end
-    local head = player.Character:FindFirstChild("Head")
-    if head then head.Transparency = 0 local face = head:FindFirstChild("face") if face then face.Transparency = 0 end end
-    for _, h in pairs(hiddenHairAccessories) do pcall(function() h.Transparency = 0 end) end
-    hiddenHairAccessories = {}
-end
-
--- ========== STRETCHED ==========
-local function applyStretched()
-    if stretchConnection then stretchConnection:Disconnect() end
-    local cam = workspace.CurrentCamera
-    stretchConnection = RunService.RenderStepped:Connect(function()
-        if cam and stretchedEnabled then cam.CFrame = cam.CFrame * CFrame.new(0,0,0,1,0,0,0,stretchedAmount,0,0,0,1) end
-    end)
-end
-local function removeStretched()
-    if stretchConnection then stretchConnection:Disconnect() stretchConnection = nil end
-end
-
--- ========== SPIN ==========
-local function applySpinPlayer()
-    if spinConnection then spinConnection:Disconnect() end
-    spinConnection = RunService.Heartbeat:Connect(function()
-        if not spinPlayerEnabled or not player.Character then return end
-        pcall(function()
-            local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(spinSpeed / 10), 0) end
-        end)
-    end)
-end
-local function removeSpinPlayer()
-    if spinConnection then spinConnection:Disconnect() spinConnection = nil end
-end
-
--- ========== SKIN STEALER ==========
-local function saveOriginalAppearance()
-    if not player.Character then return end
-    local hum = player.Character:FindFirstChildOfClass("Humanoid")
-    if hum and hum:FindFirstChildOfClass("HumanoidDescription") then
-        originalAppearance = hum:FindFirstChildOfClass("HumanoidDescription"):Clone()
-    end
-end
-local function clearStolenAccessories()
-    for _, a in pairs(stolenAccessories) do pcall(function() a:Destroy() end) end stolenAccessories = {}
-end
-local function stealSkin(targetName)
-    if not player.Character then return end
-    local tp = Players:FindFirstChild(targetName)
-    if not tp or not tp.Character then return end
-    clearStolenAccessories()
-    local myChar, tChar = player.Character, tp.Character
-    pcall(function()
-        local myBC = myChar:FindFirstChild("Body Colors") local tBC = tChar:FindFirstChild("Body Colors")
-        if myBC and tBC then
-            myBC.HeadColor=tBC.HeadColor myBC.LeftArmColor=tBC.LeftArmColor myBC.RightArmColor=tBC.RightArmColor
-            myBC.LeftLegColor=tBC.LeftLegColor myBC.RightLegColor=tBC.RightLegColor myBC.TorsoColor=tBC.TorsoColor
-        end
-    end)
-    pcall(function()
-        local s=myChar:FindFirstChildOfClass("Shirt") local ts=tChar:FindFirstChildOfClass("Shirt")
-        if s then s:Destroy() end
-        if ts then local ns=Instance.new("Shirt") ns.ShirtTemplate=ts.ShirtTemplate ns.Parent=myChar table.insert(stolenAccessories,ns) end
-    end)
-    pcall(function()
-        local p=myChar:FindFirstChildOfClass("Pants") local tp2=tChar:FindFirstChildOfClass("Pants")
-        if p then p:Destroy() end
-        if tp2 then local np=Instance.new("Pants") np.PantsTemplate=tp2.PantsTemplate np.Parent=myChar table.insert(stolenAccessories,np) end
-    end)
-    pcall(function()
-        for _, a in pairs(myChar:GetChildren()) do if a:IsA("Accessory") then a:Destroy() end end
-        for _, a in pairs(tChar:GetChildren()) do
-            if a:IsA("Accessory") then local na=a:Clone() na.Parent=myChar table.insert(stolenAccessories,na) end
-        end
-    end)
-    pcall(function()
-        local mh=myChar:FindFirstChild("Head") local th=tChar:FindFirstChild("Head")
-        if mh and th then
-            local mf=mh:FindFirstChildOfClass("Decal") local tf=th:FindFirstChildOfClass("Decal")
-            if mf and tf then mf.Texture=tf.Texture elseif tf and not mf then tf:Clone().Parent=mh end
-        end
-    end)
-end
-local function restoreOriginalSkin()
-    if not player.Character then return end
-    clearStolenAccessories()
-    local hum = player.Character:FindFirstChildOfClass("Humanoid")
-    if hum and originalAppearance then hum:ApplyDescription(originalAppearance:Clone()) end
-end
-if player.Character then saveOriginalAppearance() end
-
--- ========== REMOVE GFX ==========
-local function removeParticles(model)
-    for _, c in ipairs(model:GetDescendants()) do
-        if c:IsA("ParticleEmitter") then c.Rate=c.Rate*0.10 c.Speed=NumberRange.new(0)
-        elseif c:IsA("Trail") then c.Enabled=false
-        elseif c:IsA("Smoke") then c.RiseVelocity=0 c.Opacity=0.05
-        elseif c:IsA("Beam") then c.LightEmission=0.2 c.LightInfluence=0.8 c.Transparency=NumberSequence.new(0.15)
-        end
-    end
-end
-local function cleanPlayersGfx()
-    for _, p in pairs(Players:GetPlayers()) do if p ~= player and p.Character then removeParticles(p.Character) end end
-end
-local function applyRemoveGfx()
-    for _, obj in ipairs(workspace:GetDescendants()) do if obj:IsA("BasePart") or obj:IsA("Model") then removeParticles(obj) end end
-    cleanPlayersGfx()
-    pcall(function()
-        local L = game:GetService("Lighting")
-        L.GlobalShadows=false L.FogEnd=100000
-        for _, e in pairs(L:GetChildren()) do
-            if e:IsA("BloomEffect") or e:IsA("BlurEffect")
-            or e:IsA("SunRaysEffect") or e:IsA("DepthOfFieldEffect") then e:Destroy() end
-        end
-    end)
-    gfxWorkspaceConn = workspace.DescendantAdded:Connect(function(obj)
-        if obj:IsA("ParticleEmitter") then obj.Rate=obj.Rate*0.10 obj.Speed=NumberRange.new(0)
-        elseif obj:IsA("Trail") then obj.Enabled=false
-        elseif obj:IsA("Smoke") then obj.RiseVelocity=0 obj.Opacity=0.05
-        elseif obj:IsA("Beam") then obj.LightEmission=0.2 obj.LightInfluence=0.8 obj.Transparency=NumberSequence.new(0.15)
-        end
-    end)
-    gfxPlayersConn = Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(removeParticles) end)
-    removeGfxConnection = RunService.RenderStepped:Connect(function()
-        if not removeGfxEnabled then return end cleanPlayersGfx()
-    end)
-end
-local function stopRemoveGfx()
-    if gfxWorkspaceConn then gfxWorkspaceConn:Disconnect() gfxWorkspaceConn=nil end
-    if gfxPlayersConn then gfxPlayersConn:Disconnect() gfxPlayersConn=nil end
-    if removeGfxConnection then removeGfxConnection:Disconnect() removeGfxConnection=nil end
-    pcall(function() game:GetService("Lighting").GlobalShadows=true game:GetService("Lighting").FogEnd=10000 end)
-end
-
--- ========== FONT CHANGER ==========
-local function applyFontTo(inst)
-    if not (inst.ClassName=="TextLabel" or inst.ClassName=="TextButton" or inst.ClassName=="TextBox") then return end
-    local original = tostring(inst.Font):split(".")[3] or "GothamSsm"
-    local conn = inst:GetPropertyChangedSignal("Font"):Connect(function() pcall(function() inst.Font=Enum.Font[fontPreset] end) end)
-    table.insert(updatedFonts, {inst=inst, original=original, conn=conn})
-    pcall(function() inst.Font=Enum.Font[fontPreset] end)
-end
-local function enableFonts()
-    fontConn = game.DescendantAdded:Connect(function(v) pcall(applyFontTo, v) end)
-    for _, v in game:GetDescendants() do pcall(applyFontTo, v) end
-end
-local function disableFonts()
-    pcall(function() if fontConn then fontConn:Disconnect() end end)
-    for _, e in updatedFonts do pcall(function() e.conn:Disconnect() e.inst.Font=Enum.Font[e.original] or Enum.Font.GothamSsm end) end
-    table.clear(updatedFonts)
-end
-
--- ========== SANGUINE GLITCH (GhoulZCharge) ==========
-local function MegaBoost()
-    local char = player.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    local hum = char and char:FindFirstChild("Humanoid")
-    if not hrp or not hum then return end
-    local targetPos = Mouse.Hit.p
-    local direction = (targetPos - hrp.Position).Unit
-    hum.PlatformStand = true
-    local att = Instance.new("Attachment", hrp)
-    local lv = Instance.new("LinearVelocity", hrp)
-    lv.MaxForce = 9999999
-    lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
-    lv.VectorVelocity = direction * multiPower
-    lv.Attachment0 = att
-    task.wait(multiDuration)
-    if lv then lv:Destroy() end
-    if att then att:Destroy() end
-    hum.PlatformStand = false
-end
-
-RunService.Heartbeat:Connect(function()
-    if not multiEnabled then return end
-    local char = player.Character
-    local hum = char and char:FindFirstChild("Humanoid")
-    if not hum then return end
-    local isGhoulCharging = false
-    for _, anim in pairs(hum:GetPlayingAnimationTracks()) do
-        if anim.Animation.AnimationId:find("14418367908") or anim.Name == "GhoulZCharge" then
-            isGhoulCharging = true break
-        end
-    end
-    if isGhoulCharging then
-        if not multiCharging then
-            multiCharging = true
-            multiChargeStart = tick()
-        end
-    else
-        if multiCharging then
-            local totalCharge = tick() - multiChargeStart
-            if totalCharge >= 3.0 then
-                task.spawn(MegaBoost)
-            end
-            multiCharging = false
-            multiChargeStart = 0
-        end
-    end
+    textbutton_973.MouseButton1Click:Connect(function(h, b, u, X, O)
+    local v1 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3), {
+    BackgroundTransparency = 1,
+    TextTransparency = 1
+})
+    local v2 = v1:Play()
+    local v3 = TweenService:Create(TweenService, {}, TweenInfo.new(0.4), {
+    Size = UDim2.fromScale(0, 0),
+    ImageTransparency = 1
+})
+    local v4 = v3:Play()
+    local v5 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3), {
+    TextTransparency = 1
+})
+    local v6 = v5:Play()
+    local v7 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3), {
+    TextTransparency = 1
+})
+    local v8 = v7:Play()
+    local v9 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3), {
+    TextTransparency = 1
+})
+    local v10 = v9:Play()
+    local v11 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3), {
+    TextTransparency = 1
+})
+    local v12 = v11:Play()
+    local v13 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3), {
+    TextTransparency = 1
+})
+    local v14 = v13:Play()
+    local v15 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3), {
+    TextTransparency = 1
+})
+    local v16 = v15:Play()
+    local v17 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3), {
+    TextTransparency = 1
+})
+    local v18 = v17:Play()
+    local v19 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3), {
+    TextTransparency = 1
+})
+    local v20 = v19:Play()
+    local v21 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3), {
+    TextTransparency = 1
+})
+    local v22 = v21:Play()
+    local v23 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3), {
+    TextTransparency = 1
+})
+    local v24 = v23:Play()
+    task.wait(0.4)
+    local v26 = StarterGui:SetCore("SendNotification", {
+    Text = "✅ Script Graphics successfully loaded.",
+    Duration = 5,
+    Title = "UniversHub by bao9002"
+})
+    local v27 = StarterGui:SetCore("SendNotification", {
+    Text = "https://github.com/Uranus197",
+    Duration = 5,
+    Title = "INFORMATION ABOUT ME🚀"
+})
+    local v28 = TweenService:Create(TweenService, {}, TweenInfo.new(1), {
+    Volume = 0
+})
+    local v29 = v28:Play()
+    local v30 = TweenService:Create(TweenService, {}, TweenInfo.new(1), {
+    BackgroundTransparency = 1
+})
 end)
-
--- =====================================================================
--- [ AUDIO ]
--- =====================================================================
-local function InjectSound()
-    local s = Instance.new("Sound", game:GetService("SoundService"))
-    s.SoundId = "rbxassetid://7145300164"
-    s.Volume = 0.5; s.Pitch = 0.8; s.PlayOnRemove = true; s:Play()
-end
-
--- =====================================================================
--- INTRO
--- =====================================================================
-local function StartIntro(callback)
-    local Frame = Instance.new("Frame", ScreenGui)
-    Frame.Size = UDim2.fromOffset(280, 50)
-    Frame.Position = UDim2.fromScale(0.5, 0.5); Frame.AnchorPoint = Vector2.new(0.5, 0.5)
-    Frame.BackgroundColor3 = Theme.Bg_Out
-    Frame.BorderSizePixel = 0
-
-    local ScanLine = Instance.new("Frame", Frame)
-    ScanLine.Size = UDim2.new(0, 2, 1, 0)
-    ScanLine.BackgroundColor3 = Theme.Accent
-    ScanLine.BorderSizePixel = 0
-
-    local Text = Instance.new("TextLabel", Frame)
-    Text.Size = UDim2.fromScale(1, 1)
-    Text.Text = "WAITING FOR INJECTION..."; Text.Font = Theme.Font
-    Text.TextColor3 = Theme.Text; Text.TextSize = 14; Text.BackgroundTransparency = 1
-
-    InjectSound()
-    TweenService:Create(ScanLine, TweenInfo.new(1, Enum.EasingStyle.Linear), {Position = UDim2.new(1, 0, 0, 0)}):Play()
-    task.wait(1.2)
-    InjectSound()
-    Text.Text = "INJECTED_GOTCHA.EXE"; Text.TextColor3 = Theme.Accent
-    task.wait(0.6)
-    Frame:Destroy()
-    callback()
-end
-
--- =====================================================================
--- MENU ELITE
--- =====================================================================
-local function CreateMenu()
-    local Main = Instance.new("Frame", ScreenGui)
-    Main.Size = UDim2.fromOffset(700, 480)
-    Main.Position = UDim2.fromScale(0.5, 0.5); Main.AnchorPoint = Vector2.new(0.5, 0.5)
-    Main.BackgroundColor3 = Theme.Bg_Out
-    Main.BorderSizePixel = 0
-
-    local OutStroke = Instance.new("UIStroke", Main)
-    OutStroke.Thickness = 1; OutStroke.Color = Color3.new(0,0,0)
-    local InStroke = Instance.new("UIStroke", Main)
-    InStroke.Thickness = 2; InStroke.Color = Theme.Border; InStroke.Transparency = 0.5
-
-    local Sidebar = Instance.new("Frame", Main)
-    Sidebar.Size = UDim2.new(0, 60, 1, -6)
-    Sidebar.Position = UDim2.new(0, 3, 0, 3)
-    Sidebar.BackgroundColor3 = Theme.Tab_Bg
-    Sidebar.BorderSizePixel = 0
-    Instance.new("UIStroke", Sidebar).Color = Theme.Border
-
-    local Content = Instance.new("Frame", Main)
-    Content.Size = UDim2.new(1, -72, 1, -6)
-    Content.Position = UDim2.new(0, 69, 0, 3)
-    Content.BackgroundColor3 = Theme.Bg_In
-    Content.BorderSizePixel = 0
-    Instance.new("UIStroke", Content).Color = Theme.Border
-
-    local Pages = {}
-    local TabList = Instance.new("UIListLayout", Sidebar)
-    TabList.HorizontalAlignment = "Center"; TabList.Padding = UDim.new(0, 5)
-
-    -- ── Helpers UI ──────────────────────────────────────────────────
-    local function AddTab(name, iconText, isFirst)
-        local Page = Instance.new("ScrollingFrame", Content)
-        Page.Size = UDim2.fromScale(1, 1); Page.BackgroundTransparency = 1; Page.Visible = isFirst
-        Page.ScrollBarThickness = 3; Page.CanvasSize = UDim2.new(0,0,0,0)
-        Pages[name] = Page
-
-        local Layout = Instance.new("UIListLayout", Page)
-        Layout.Padding = UDim.new(0, 8)
-        Layout.SortOrder = "LayoutOrder"
-        Layout.HorizontalAlignment = "Left"
-        Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            Page.CanvasSize = UDim2.new(0, 0, 0, Layout.AbsoluteContentSize.Y + 10)
-        end)
-        Instance.new("UIPadding", Page).PaddingLeft = UDim.new(0, 10)
-
-        local Btn = Instance.new("TextButton", Sidebar)
-        Btn.Size = UDim2.fromOffset(50, 50)
-        Btn.BackgroundColor3 = Color3.new(1,1,1); Btn.BackgroundTransparency = 0.98
-        Btn.Text = iconText .. "\n" .. name; Btn.Font = Theme.Font
-        Btn.TextSize = 11; Btn.TextColor3 = isFirst and Theme.Accent or Theme.Text
-        Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 5)
-
-        Btn.MouseButton1Click:Connect(function()
-            for _, p in pairs(Pages) do p.Visible = false end
-            for _, b in pairs(Sidebar:GetChildren()) do
-                if b:IsA("TextButton") then b.TextColor3 = Theme.Text end
-            end
-            Page.Visible = true; Btn.TextColor3 = Theme.Accent
-        end)
-        return Page
-    end
-
-    local function AddSection(page, title)
-        local lbl = Instance.new("TextLabel", page)
-        lbl.Size = UDim2.new(1, -10, 0, 18)
-        lbl.BackgroundTransparency = 1
-        lbl.Text = "── " .. title:upper() .. " ──"
-        lbl.Font = Theme.Font; lbl.TextSize = 11
-        lbl.TextColor3 = Theme.Accent; lbl.TextXAlignment = "Left"
-    end
-
-    local function AddToggle(page, title, default, callback)
-        local row = Instance.new("Frame", page)
-        row.Size = UDim2.new(1, -10, 0, 26)
-        row.BackgroundColor3 = Theme.Tab_Bg
-        row.BorderSizePixel = 0
-        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 4)
-        Instance.new("UIStroke", row).Color = Theme.Border
-
-        local lbl = Instance.new("TextLabel", row)
-        lbl.Size = UDim2.new(0.75, 0, 1, 0)
-        lbl.Position = UDim2.fromOffset(8, 0)
-        lbl.BackgroundTransparency = 1
-        lbl.Text = title; lbl.Font = Theme.Font; lbl.TextSize = 12
-        lbl.TextColor3 = Theme.Text; lbl.TextXAlignment = "Left"
-
-        local state = default
-        local dot = Instance.new("TextLabel", row)
-        dot.Size = UDim2.fromOffset(12, 12)
-        dot.Position = UDim2.new(1, -20, 0.5, -6)
-        dot.BackgroundColor3 = state and Theme.Accent or Color3.fromRGB(80,80,80)
-        dot.Text = ""; dot.BorderSizePixel = 0
-        Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
-
-        row.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                state = not state
-                dot.BackgroundColor3 = state and Theme.Accent or Color3.fromRGB(80,80,80)
-                callback(state)
-            end
-        end)
-    end
-
-    local function AddSlider(page, title, default, min, max, callback)
-        local row = Instance.new("Frame", page)
-        row.Size = UDim2.new(1, -10, 0, 40)
-        row.BackgroundColor3 = Theme.Tab_Bg
-        row.BorderSizePixel = 0
-        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 4)
-        Instance.new("UIStroke", row).Color = Theme.Border
-
-        local lbl = Instance.new("TextLabel", row)
-        lbl.Size = UDim2.new(0.7, 0, 0, 18)
-        lbl.Position = UDim2.fromOffset(8, 2)
-        lbl.BackgroundTransparency = 1
-        lbl.Text = title; lbl.Font = Theme.Font; lbl.TextSize = 12
-        lbl.TextColor3 = Theme.Text; lbl.TextXAlignment = "Left"
-
-        local valLbl = Instance.new("TextLabel", row)
-        valLbl.Size = UDim2.new(0.3, -8, 0, 18)
-        valLbl.Position = UDim2.new(0.7, 0, 0, 2)
-        valLbl.BackgroundTransparency = 1
-        valLbl.Text = tostring(default); valLbl.Font = Theme.Font; valLbl.TextSize = 12
-        valLbl.TextColor3 = Theme.Accent; valLbl.TextXAlignment = "Right"
-
-        local track = Instance.new("Frame", row)
-        track.Size = UDim2.new(1, -16, 0, 4)
-        track.Position = UDim2.new(0, 8, 1, -10)
-        track.BackgroundColor3 = Theme.Border; track.BorderSizePixel = 0
-        Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
-
-        local fill = Instance.new("Frame", track)
-        fill.Size = UDim2.new((default - min)/(max - min), 0, 1, 0)
-        fill.BackgroundColor3 = Theme.Accent; fill.BorderSizePixel = 0
-        Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
-
-        local dragging = false
-        local function update(x)
-            local rel = math.clamp((x - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
-            local val = math.floor(min + rel * (max - min))
-            fill.Size = UDim2.new(rel, 0, 1, 0)
-            valLbl.Text = tostring(val)
-            callback(val)
-        end
-        track.InputBegan:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true update(i.Position.X) end
-        end)
-        UserInputService.InputChanged:Connect(function(i)
-            if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then update(i.Position.X) end
-        end)
-        UserInputService.InputEnded:Connect(function(i)
-            if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-        end)
-    end
-
-    local function AddDropdown(page, title, values, default, callback)
-        local row = Instance.new("Frame", page)
-        row.Size = UDim2.new(1, -10, 0, 26)
-        row.BackgroundColor3 = Theme.Tab_Bg
-        row.BorderSizePixel = 0
-        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 4)
-        Instance.new("UIStroke", row).Color = Theme.Border
-
-        local lbl = Instance.new("TextLabel", row)
-        lbl.Size = UDim2.new(0.55, 0, 1, 0)
-        lbl.Position = UDim2.fromOffset(8, 0)
-        lbl.BackgroundTransparency = 1
-        lbl.Text = title; lbl.Font = Theme.Font; lbl.TextSize = 12
-        lbl.TextColor3 = Theme.Text; lbl.TextXAlignment = "Left"
-
-        local sel = Instance.new("TextButton", row)
-        sel.Size = UDim2.new(0.4, -8, 0.8, 0)
-        sel.Position = UDim2.new(0.58, 0, 0.1, 0)
-        sel.BackgroundColor3 = Theme.Bg_Out
-        sel.Text = values[default] or values[1]; sel.Font = Theme.Font; sel.TextSize = 11
-        sel.TextColor3 = Theme.Accent; sel.BorderSizePixel = 0
-        Instance.new("UICorner", sel).CornerRadius = UDim.new(0, 3)
-
-        local idx = default
-        sel.MouseButton1Click:Connect(function()
-            idx = (idx % #values) + 1
-            sel.Text = values[idx]
-            callback(values[idx])
-        end)
-    end
-
-    local function AddButton(page, title, callback)
-        local btn = Instance.new("TextButton", page)
-        btn.Size = UDim2.new(1, -10, 0, 26)
-        btn.BackgroundColor3 = Theme.Accent
-        btn.Text = title; btn.Font = Theme.Font; btn.TextSize = 12
-        btn.TextColor3 = Theme.Bg_Out; btn.BorderSizePixel = 0
-        Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 4)
-        btn.MouseButton1Click:Connect(callback)
-    end
-
-    -- ── TABS ────────────────────────────────────────────────────────
-    local pageAim     = AddTab("AIM",  "AIM", true)
-    local pageMacro   = AddTab("MACRO","MCR", false)
-    local pageGlitch  = AddTab("GLCH", "GLT", false)
-    local pageVisuals = AddTab("VIS",  "VIS", false)
-    local pageFonts   = AddTab("FONT", "FNT", false)
-
-    -- ── AIM (Main) ──────────────────────────────────────────────────
-    AddSection(pageAim, "Combat")
-    AddToggle(pageAim, "Hitbox Expander", false, function(state)
-        hitboxEnabled = state
-        if state then
-            for _, p in pairs(Players:GetPlayers()) do if p ~= player and p.Character then createInvisibleHitbox(p.Character) end end
-        else
-            for _, p in pairs(Players:GetPlayers()) do if p ~= player then removeHitbox(p.Character) end end
-        end
-    end)
-    AddSlider(pageAim, "Hitbox Size", 20, 5, 50, function(v)
-        hitboxSize = v
-        if hitboxEnabled then
-            for _, p in pairs(Players:GetPlayers()) do if p ~= player and p.Character then createInvisibleHitbox(p.Character) end end
-        end
-    end)
-    AddToggle(pageAim, "No Animation", false, function(state)
-        noAnimationEnabled = state
-        if state then disableAllAnimations()
-        else if animationConnection then animationConnection:Disconnect() animationConnection = nil end end
-    end)
-    AddToggle(pageAim, "Auto-Click Sword", false, function(state)
-        autoClickEnabled = state
-        if state then startAutoClick()
-        else if autoClickConnection then autoClickConnection:Disconnect() autoClickConnection = nil end end
-    end)
-    AddSection(pageAim, "Utility")
-    AddToggle(pageAim, "Remove GFX : FPS", false, function(state)
-        removeGfxEnabled = state
-        if state then applyRemoveGfx() else stopRemoveGfx() end
-    end)
-
-    -- ── MACRO ───────────────────────────────────────────────────────
-    AddSection(pageMacro, "Soru & Utility")
-    AddToggle(pageMacro, "Soru Auto Aim", true, function(state)
-        soruAutoAimEnabled = state
-        getgenv().SoruAutoAim = state
-    end)
-
-    -- ── GLITCH ──────────────────────────────────────────────────────
-    AddSection(pageGlitch, "Sanguine Glitch")
-    AddToggle(pageGlitch, "Sanguine Glitch (Auto GhoulZ)", false, function(state)
-        multiEnabled = state
-        if not state then multiCharging = false multiChargeStart = 0 end
-    end)
-    AddSlider(pageGlitch, "Vitesse Propulsion", 1000, 100, 5000, function(v) multiPower = v end)
-
-    -- ── VISUALS ─────────────────────────────────────────────────────
-    AddSection(pageVisuals, "Skin")
-    local playerNames = {"None"}
-    for _, p in pairs(Players:GetPlayers()) do if p ~= player then table.insert(playerNames, p.Name) end end
-    AddDropdown(pageVisuals, "Skin Stealer Target", playerNames, 1, function(v)
-        targetPlayerName = v
-        if skinStealerEnabled and v ~= "None" then stealSkin(v) end
-    end)
-    AddToggle(pageVisuals, "Activate Skin Stealer", false, function(state)
-        skinStealerEnabled = state
-        if state and targetPlayerName ~= "" and targetPlayerName ~= "None" then stealSkin(targetPlayerName)
-        elseif not state then restoreOriginalSkin() end
-    end)
-
-    AddSection(pageVisuals, "Fake Items")
-    AddDropdown(pageVisuals, "Fake Korblox Version", {"V1","V2"}, 1, function(v)
-        fakeKorbloxVersion = v
-        if fakeKorbloxEnabled then removeFakeKorblox() applyFakeKorblox() end
-    end)
-    AddToggle(pageVisuals, "Fake Korblox", false, function(state)
-        fakeKorbloxEnabled = state
-        if state then applyFakeKorblox() else removeFakeKorblox() end
-    end)
-    AddDropdown(pageVisuals, "Fake Headless Version", {"V1","V2"}, 1, function(v)
-        fakeHeadlessVersion = v
-        if fakeHeadlessEnabled then removeFakeHeadless() applyFakeHeadless() end
-    end)
-    AddToggle(pageVisuals, "Fake Headless", false, function(state)
-        fakeHeadlessEnabled = state
-        if state then applyFakeHeadless() else removeFakeHeadless() end
-    end)
-
-    AddSection(pageVisuals, "Effects")
-    AddToggle(pageVisuals, "Spin Player", false, function(state)
-        spinPlayerEnabled = state
-        if state then applySpinPlayer() else removeSpinPlayer() end
-    end)
-    AddSlider(pageVisuals, "Spin Speed", 50, 10, 100, function(v)
-        spinSpeed = v
-        if spinPlayerEnabled then applySpinPlayer() end
-    end)
-    AddToggle(pageVisuals, "Stretched Screen", false, function(state)
-        stretchedEnabled = state
-        if state then applyStretched() else removeStretched() end
-    end)
-    AddSlider(pageVisuals, "Stretch Amount", 65, 50, 100, function(v)
-        stretchedAmount = v / 100
-        if stretchedEnabled then applyStretched() end
-    end)
-
-    -- ── FONTS ───────────────────────────────────────────────────────
-    AddSection(pageFonts, "Font Changer")
-    local fontList = {}
-    for _, v in Enum.Font:GetEnumItems() do table.insert(fontList, tostring(v):split(".")[3]) end
-    AddDropdown(pageFonts, "Font Style", fontList, 1, function(v)
-        fontPreset = v
-        if fontChangerEnabled then disableFonts() enableFonts() end
-    end)
-    AddToggle(pageFonts, "Font Changer", false, function(state)
-        fontChangerEnabled = state
-        if state then enableFonts() else disableFonts() end
-    end)
-    AddButton(pageFonts, "Reset All Features", function()
-        stopRemoveGfx() removeFakeKorblox() removeFakeHeadless() removeSpinPlayer() removeStretched() disableFonts() restoreOriginalSkin()
-        if animationConnection then animationConnection:Disconnect() animationConnection=nil end
-        if autoClickConnection then autoClickConnection:Disconnect() autoClickConnection=nil end
-        hitboxEnabled=false noAnimationEnabled=false autoClickEnabled=false
-        soruAutoAimEnabled=true getgenv().SoruAutoAim=true
-        removeGfxEnabled=false fakeKorbloxEnabled=false
-        fakeHeadlessEnabled=false spinPlayerEnabled=false stretchedEnabled=false
-        fontChangerEnabled=false skinStealerEnabled=false
-        for _, p in pairs(Players:GetPlayers()) do if p ~= player then removeHitbox(p.Character) end end
-    end)
-
-    -- ── DRAG ────────────────────────────────────────────────────────
-    local dragging, dragStart, startPos
-    Main.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true; dragStart = input.Position; startPos = Main.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            TweenService:Create(Main, TweenInfo.new(0.1, Enum.EasingStyle.Linear), {
-                Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            }):Play()
-        end
-    end)
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-    end)
-end
-
--- =====================================================================
--- INIT
--- =====================================================================
-for _, p in pairs(Players:GetPlayers()) do setupPlayer(p) end
-Players.PlayerAdded:Connect(setupPlayer)
-
-player.CharacterAdded:Connect(function(character)
-    character:WaitForChild("HumanoidRootPart", 10)
-    character:WaitForChild("Humanoid", 10)
-    task.wait(1)
-    saveOriginalAppearance()
-    if fakeKorbloxEnabled then applyFakeKorblox() end
-    if fakeHeadlessEnabled then applyFakeHeadless() end
-    if stretchedEnabled then applyStretched() end
-    if spinPlayerEnabled then applySpinPlayer() end
-    if skinStealerEnabled and targetPlayerName ~= "" and targetPlayerName ~= "None" then
-        task.wait(2) stealSkin(targetPlayerName)
-    end
+    task.spawn(function(arg1, arg2)
+    local v2 = TweenService:Create(TweenService, {}, TweenInfo.new(0.8, Enum.EasingStyle.Linear), {
+    Rotation = imagelabel_503.Rotation + 360
+})
+    local v3 = v2:Play()
+    local v4 = v2.Completed:Wait()
+    local v5 = TweenService:Create(TweenService, {}, TweenInfo.new(0.6, Enum.EasingStyle.Quart), {
+    Position = UDim2.fromScale(0.25, 0.5)
+})
+    local v6 = v5:Play()
+    task.wait(0.25)
+    textlabel_884.Position = textlabel_884.Position - UDim2.fromScale(0, 0.08)
+    local textlabel_884_targetPos = textlabel_884.Position + UDim2.fromScale(0, 0.08)
+    local v11 = TweenService:Create(TweenService, {}, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {
+    Position = textlabel_267_targetPos,
+    TextTransparency = 0
+})
+    local v12 = v11:Play()
+    task.wait(0.05)
+    textlabel_267.Position = textlabel_267.Position - UDim2.fromScale(0, 0.08)
+    local textlabel_267_targetPos = textlabel_267.Position + UDim2.fromScale(0, 0.08)
+    local v17 = TweenService:Create(TweenService, {}, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {
+    Position = textlabel_396_targetPos,
+    TextTransparency = 0
+})
+    local v18 = v17:Play()
+    task.wait(0.05)
+    textlabel_396.Position = textlabel_396.Position - UDim2.fromScale(0, 0.08)
+    local textlabel_396_targetPos = textlabel_396.Position + UDim2.fromScale(0, 0.08)
+    local v23 = TweenService:Create(TweenService, {}, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {
+    Position = textlabel_393_targetPos,
+    TextTransparency = 0
+})
+    local v24 = v23:Play()
+    task.wait(0.05)
+    textlabel_393.Position = textlabel_393.Position - UDim2.fromScale(0, 0.08)
+    local textlabel_393_targetPos = textlabel_393.Position + UDim2.fromScale(0, 0.08)
+    local v29 = TweenService:Create(TweenService, {}, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {
+    Position = textlabel_723_targetPos,
+    TextTransparency = 0
+})
+    local v30 = v29:Play()
+    task.wait(0.05)
+    textlabel_723.Position = textlabel_723.Position - UDim2.fromScale(0, 0.08)
+    local textlabel_723_targetPos = textlabel_723.Position + UDim2.fromScale(0, 0.08)
+    local v35 = TweenService:Create(TweenService, {}, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {
+    Position = textlabel_456_targetPos,
+    TextTransparency = 0
+})
+    local v36 = v35:Play()
+    task.wait(0.05)
+    textlabel_456.Position = textlabel_456.Position - UDim2.fromScale(0, 0.08)
+    local textlabel_456_targetPos = textlabel_456.Position + UDim2.fromScale(0, 0.08)
+    local v41 = TweenService:Create(TweenService, {}, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {
+    Position = textlabel_562_targetPos,
+    TextTransparency = 0
+})
+    local v42 = v41:Play()
+    task.wait(0.05)
+    textlabel_562.Position = textlabel_562.Position - UDim2.fromScale(0, 0.08)
+    local textlabel_562_targetPos = textlabel_562.Position + UDim2.fromScale(0, 0.08)
+    local v47 = TweenService:Create(TweenService, {}, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {
+    Position = textlabel_268_targetPos,
+    TextTransparency = 0
+})
+    local v48 = v47:Play()
+    task.wait(0.05)
+    textlabel_268.Position = textlabel_268.Position - UDim2.fromScale(0, 0.08)
+    local textlabel_268_targetPos = textlabel_268.Position + UDim2.fromScale(0, 0.08)
+    local v53 = TweenService:Create(TweenService, {}, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {
+    Position = textlabel_741_targetPos,
+    TextTransparency = 0
+})
+    local v54 = v53:Play()
+    task.wait(0.05)
+    textlabel_741.Position = textlabel_741.Position - UDim2.fromScale(0, 0.08)
+    local textlabel_741_targetPos = textlabel_741.Position + UDim2.fromScale(0, 0.08)
+    local v59 = TweenService:Create(TweenService, {}, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {
+    Position = textlabel_24_targetPos,
+    TextTransparency = 0
+})
+    local v60 = v59:Play()
+    task.wait(0.05)
+    textlabel_24.Position = textlabel_24.Position - UDim2.fromScale(0, 0.08)
+    local textlabel_24_targetPos = textlabel_24.Position + UDim2.fromScale(0, 0.08)
+    local v65 = TweenService:Create(TweenService, {}, TweenInfo.new(0.35, Enum.EasingStyle.Quart), {
+    Position = textlabel_24_targetPos,
+    TextTransparency = 0
+})
+    local v66 = v65:Play()
+    task.wait(0.05)
+    task.wait(0.3)
+    local v69 = TweenService:Create(TweenService, {}, TweenInfo.new(0.5), {
+    TextTransparency = 0,
+    BackgroundTransparency = 0
+})
+    local v70 = v69:Play()
+    task.wait(0.3)
 end)
+end)
+imagebutton_947.InputBegan:Connect(function(h, b, u, X)
+end)
+local frame_559 = Instance.new("Frame")
 
-StartIntro(CreateMenu)
+frame_559.Name = "VenusMain"
+frame_559.Size = UDim2.new(0, 380, 0, 320)
+frame_559.Position = UDim2.new(0.5, -190, 0.5, -160)
+frame_559.AnchorPoint = Vector2.new(0, 0)
+frame_559.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
+frame_559.BorderSizePixel = 0
+local uicorner_760 = Instance.new("UICorner")
 
-print("✅ GOTCHA.EXE ELITE | By HimselfZen")
+uicorner_760.CornerRadius = UDim.new(0, 12)
+uicorner_760.Parent = uicorner_760
+local uistroke_522 = Instance.new("UIStroke")
+
+uistroke_522.Thickness = 1.5
+uistroke_522.Color = Color3.fromRGB(158, 56, 255)
+uistroke_522.Transparency = 0
+uistroke_522.Parent = uistroke_522
+frame_559.Visible = false
+frame_559.ClipsDescendants = true
+frame_559.Size = UDim2.new(0, 0, 0, 0)
+local imagelabel_665 = Instance.new("ImageLabel")
+
+imagelabel_665.Size = UDim2.new(1, 0, 1, 0)
+imagelabel_665.Position = UDim2.new(0, 0, 0, 0)
+imagelabel_665.BackgroundTransparency = 1
+imagelabel_665.ImageTransparency = 0.8
+imagelabel_665.ZIndex = 1
+local frame_292 = Instance.new("Frame")
+
+frame_292.Size = UDim2.new(1, -12, 1, -12)
+frame_292.Position = UDim2.new(0, 6, 0, 6)
+frame_292.BackgroundTransparency = 1
+frame_292.ZIndex = 2
+frame_559.InputBegan:Connect(function(h, b)
+end)
+local frame_406 = Instance.new("Frame")
+
+frame_406.Size = UDim2.new(1, 0, 0, 44)
+frame_406.Position = UDim2.new(0, 0, 0, 0)
+frame_406.BackgroundTransparency = 1
+local imagelabel_932 = Instance.new("ImageLabel")
+
+imagelabel_932.Size = UDim2.new(0, 24, 0, 24)
+imagelabel_932.Position = UDim2.new(0, 8, 0.5, -12)
+imagelabel_932.BackgroundTransparency = 1
+imagelabel_932.Image = "rbxassetid://114584661024711"
+imagelabel_932.ZIndex = 3
+local textlabel_688 = Instance.new("TextLabel")
+
+textlabel_688.Size = UDim2.new(1, -120, 1, 0)
+textlabel_688.Position = UDim2.new(0, 38, 0, 0)
+textlabel_688.BackgroundTransparency = 1
+textlabel_688.Text = "Univers Hub | Graphics script"
+textlabel_688.TextColor3 = Color3.fromRGB(240, 240, 250)
+textlabel_688.Font = Font.GothamBold
+textlabel_688.TextSize = 16
+textlabel_688.TextXAlignment = Enum.TextXAlignment.Left
+local imagelabel_799 = Instance.new("ImageLabel")
+
+imagelabel_799.Size = UDim2.new(0, 24, 0, 24)
+imagelabel_799.Position = UDim2.new(0, 245, 0.5, -12)
+imagelabel_799.BackgroundTransparency = 1
+imagelabel_799.Image = "rbxassetid://71607909219378"
+imagelabel_799.ZIndex = 3
+local textbutton_655 = Instance.new("TextButton")
+
+textbutton_655.Size = UDim2.new(0, 28, 0, 28)
+textbutton_655.Position = UDim2.new(1, -72, 0.5, -14)
+textbutton_655.Text = "—"
+textbutton_655.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+textbutton_655.TextColor3 = Color3.fromRGB(250, 250, 250)
+local uicorner_144 = Instance.new("UICorner")
+
+uicorner_144.CornerRadius = UDim.new(0, 6)
+uicorner_144.Parent = uicorner_144
+local uistroke_361 = Instance.new("UIStroke")
+
+uistroke_361.Thickness = 1
+uistroke_361.Color = Color3.fromRGB(28, 16, 48)
+uistroke_361.Transparency = 0
+uistroke_361.Parent = uistroke_361
+local textbutton_923 = Instance.new("TextButton")
+
+textbutton_923.Size = UDim2.new(0, 28, 0, 28)
+textbutton_923.Position = UDim2.new(1, -40, 0.5, -14)
+textbutton_923.Text = "X"
+textbutton_923.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+textbutton_923.TextColor3 = Color3.fromRGB(250, 250, 250)
+local uicorner_885 = Instance.new("UICorner")
+
+uicorner_885.CornerRadius = UDim.new(0, 6)
+uicorner_885.Parent = uicorner_885
+local uistroke_384 = Instance.new("UIStroke")
+
+uistroke_384.Thickness = 1
+uistroke_384.Color = Color3.fromRGB(28, 16, 48)
+uistroke_384.Transparency = 0
+uistroke_384.Parent = uistroke_384
+local frame_896 = Instance.new("Frame")
+
+frame_896.Name = "UniversTopBar"
+frame_896.Size = UDim2.new(0, 320, 0, 45)
+frame_896.Position = UDim2.new(0.5, -160, 0, 10)
+frame_896.BackgroundColor3 = Color3.fromRGB(28, 16, 48)
+frame_896.Visible = false
+local uicorner_794 = Instance.new("UICorner")
+
+uicorner_794.CornerRadius = UDim.new(0, 10)
+uicorner_794.Parent = uicorner_794
+local uistroke_882 = Instance.new("UIStroke")
+
+uistroke_882.Thickness = 1
+uistroke_882.Color = Color3.fromRGB(158, 56, 255)
+uistroke_882.Transparency = 0
+uistroke_882.Parent = uistroke_882
+local imagelabel_110 = Instance.new("ImageLabel")
+
+imagelabel_110.Size = UDim2.new(0, 35, 0, 35)
+imagelabel_110.Position = UDim2.new(0, 5, 0.5, -17.5)
+imagelabel_110.BackgroundTransparency = 1
+imagelabel_110.Image = "rbxassetid://112179445825929"
+local textlabel_826 = Instance.new("TextLabel")
+
+textlabel_826.Size = UDim2.new(0, 150, 0, 20)
+textlabel_826.Position = UDim2.new(0, 45, 0, 2)
+textlabel_826.BackgroundTransparency = 1
+textlabel_826.Text = "UniversHub [Graphics]"
+textlabel_826.TextColor3 = Color3.fromRGB(240, 240, 250)
+textlabel_826.Font = Font.GothamBold
+textlabel_826.TextSize = 14
+textlabel_826.TextXAlignment = Enum.TextXAlignment.Left
+local textlabel_799 = Instance.new("TextLabel")
+
+textlabel_799.Size = UDim2.new(0, 200, 0, 15)
+textlabel_799.Position = UDim2.new(0, 45, 0, 22)
+textlabel_799.BackgroundTransparency = 1
+textlabel_799.Text = "by bao9002 | https://github.com/Uranus197"
+textlabel_799.TextColor3 = Color3.fromRGB(140, 140, 140)
+textlabel_799.Font = Font.Gotham
+textlabel_799.TextSize = 10
+textlabel_799.TextXAlignment = Enum.TextXAlignment.Left
+textlabel_799.TextTransparency = 0.3
+local textbutton_274 = Instance.new("TextButton")
+
+textbutton_274.Size = UDim2.new(0, 38, 0, 38)
+textbutton_274.Position = UDim2.new(1, -43, 0.5, -19)
+textbutton_274.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
+textbutton_274.Text = "▽"
+textbutton_274.TextColor3 = Color3.fromRGB(158, 56, 255)
+textbutton_274.Font = Font.GothamBold
+textbutton_274.TextSize = 25
+local uicorner_806 = Instance.new("UICorner")
+
+uicorner_806.CornerRadius = UDim.new(0, 8)
+uicorner_806.Parent = uicorner_806
+frame_896.InputBegan:Connect(function(h, b, u, X, O, I)
+end)
+local frame_635 = Instance.new("Frame")
+
+frame_635.Size = UDim2.new(0, 260, 0, 140)
+frame_635.Position = UDim2.new(0.5, -130, 0.5, -70)
+frame_635.BackgroundColor3 = Color3.fromRGB(16, 16, 20)
+frame_635.Visible = false
+frame_635.ZIndex = 20
+local uicorner_966 = Instance.new("UICorner")
+
+uicorner_966.CornerRadius = UDim.new(0, 12)
+uicorner_966.Parent = uicorner_966
+local uistroke_147 = Instance.new("UIStroke")
+
+uistroke_147.Thickness = 2
+uistroke_147.Color = Color3.fromRGB(255, 50, 50)
+uistroke_147.Transparency = 0
+uistroke_147.Parent = uistroke_147
+local textlabel_617 = Instance.new("TextLabel")
+
+textlabel_617.Size = UDim2.new(1, 0, 0.3, 0)
+textlabel_617.Position = UDim2.new(0, 0, 0.05, 0)
+textlabel_617.BackgroundTransparency = 1
+textlabel_617.Text = "Do you want to escape?"
+textlabel_617.TextColor3 = Color3.fromRGB(240, 240, 250)
+textlabel_617.Font = Font.GothamBold
+textlabel_617.TextSize = 16
+textlabel_617.ZIndex = 21
+local imagelabel_723 = Instance.new("ImageLabel")
+
+imagelabel_723.Size = UDim2.new(0, 50, 0, 50)
+imagelabel_723.Position = UDim2.new(0.5, -25, 0.45, -15)
+imagelabel_723.BackgroundTransparency = 1
+imagelabel_723.Image = "rbxassetid://126601715821016"
+imagelabel_723.ZIndex = 21
+local textbutton_203 = Instance.new("TextButton")
+
+textbutton_203.Size = UDim2.new(0, 100, 0, 35)
+textbutton_203.Position = UDim2.new(0, 20, 0.65, 0)
+textbutton_203.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+textbutton_203.Text = "Yes"
+textbutton_203.TextColor3 = Color3.new(1, 1, 1)
+textbutton_203.Font = Font.GothamBold
+textbutton_203.ZIndex = 21
+local uicorner_199 = Instance.new("UICorner")
+
+uicorner_199.CornerRadius = UDim.new(0, 6)
+uicorner_199.Parent = uicorner_199
+local textbutton_613 = Instance.new("TextButton")
+
+textbutton_613.Size = UDim2.new(0, 100, 0, 35)
+textbutton_613.Position = UDim2.new(1, -120, 0.65, 0)
+textbutton_613.BackgroundColor3 = Color3.fromRGB(28, 16, 48)
+textbutton_613.Text = "No"
+textbutton_613.TextColor3 = Color3.fromRGB(240, 240, 250)
+textbutton_613.Font = Font.GothamBold
+textbutton_613.ZIndex = 21
+local uicorner_761 = Instance.new("UICorner")
+
+uicorner_761.CornerRadius = UDim.new(0, 6)
+uicorner_761.Parent = uicorner_761
+textbutton_203.MouseButton1Click:Connect(function(h)
+    local sound_959 = Instance.new("Sound")
+
+    sound_959.SoundId = "rbxassetid://12221967"
+    sound_959.Volume = 0.6
+    sound_959.Parent = sound_959
+    local v5 = sound_959.Play({})
+    local v6 = Debris.AddItem(Debris, {}, 2)
+    textlabel_617.Text = "don't leave me pls"
+    imagelabel_723.Image = "rbxassetid://105863999014084"
+    textbutton_203.Text = "Confim"
+end)
+textbutton_613.MouseButton1Click:Connect(function(h, b)
+    local sound_136 = Instance.new("Sound")
+
+    sound_136.SoundId = "rbxassetid://12221967"
+    sound_136.Volume = 0.6
+    sound_136.Parent = sound_136
+    local v5 = sound_136.Play({})
+    local v6 = Debris.AddItem(Debris, {}, 2)
+    frame_635.Visible = false
+    frame_559.Visible = true
+    blureffect_604.Enabled = false
+    textlabel_617.Text = "Do you want to escape?"
+    imagelabel_723.Image = "rbxassetid://126601715821016"
+    textbutton_203.Text = "Yes"
+end)
+textbutton_655.MouseButton1Click:Connect(function(h, b, u, X)
+    local sound_427 = Instance.new("Sound")
+
+    sound_427.SoundId = "rbxassetid://12221976"
+    sound_427.Volume = 0.6
+    sound_427.Parent = sound_427
+    local v5 = sound_427.Play({})
+    local v6 = Debris.AddItem(Debris, {}, 2)
+    local v7 = TweenService:Create(TweenService, {}, TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+    Position = UDim2.new(frame_559.Position.X.Scale, frame_559.Position.X.Offset, 0, -50),
+    Size = UDim2.new(0, 380, 0, 0),
+    BackgroundTransparency = 1
+})
+    local v8 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3), {
+    Size = 0
+})
+    local v9 = v8:Play()
+    local v10 = v7:Play()
+    local v11 = v7.Completed:Wait()
+    frame_559.Visible = false
+    blureffect_604.Enabled = false
+    frame_896.Visible = true
+    frame_896.Position = UDim2.new(0.5, -160, 0, -50)
+    local v16 = TweenService:Create(TweenService, {}, TweenInfo.new(0.4, Enum.EasingStyle.Quint), {
+    Position = UDim2.new(0.5, -160, 0, 10)
+})
+    local v17 = v16:Play()
+end)
+textbutton_274.MouseButton1Click:Connect(function(h, b, u, X, O)
+    local sound_252 = Instance.new("Sound")
+
+    sound_252.SoundId = "rbxassetid://12221976"
+    sound_252.Volume = 0.6
+    sound_252.Parent = sound_252
+    local v5 = sound_252.Play({})
+    local v6 = Debris.AddItem(Debris, {}, 2)
+    local v7 = TweenService:Create(TweenService, {}, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
+    Position = UDim2.new(0.5, -160, 0, -50)
+})
+    local v8 = v7:Play()
+    local v9 = v7.Completed:Wait()
+    frame_896.Visible = false
+    frame_559.Visible = true
+    frame_559.Size = UDim2.new(0, 380, 0, 0)
+    frame_559.Position = UDim2.new(0.5, -190, 0, -50)
+    frame_559.BackgroundTransparency = 1
+    blureffect_604.Enabled = true
+    local v16 = TweenService:Create(TweenService, {}, TweenInfo.new(0.4), {
+    Size = 10
+})
+    local v17 = v16:Play()
+    local v18 = TweenService:Create(TweenService, {}, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+    Position = UDim2.new(0.5, -190, 0.5, -160),
+    Size = UDim2.new(0, 380, 0, 320),
+    BackgroundTransparency = 0
+})
+    local v19 = v18:Play()
+end)
+textbutton_923.MouseButton1Click:Connect(function(h, b, u, X, O)
+    local sound_542 = Instance.new("Sound")
+
+    sound_542.SoundId = "rbxassetid://12221967"
+    sound_542.Volume = 0.6
+    sound_542.Parent = sound_542
+    local v5 = sound_542.Play({})
+    local v6 = Debris.AddItem(Debris, {}, 2)
+    frame_559.Visible = false
+    frame_896.Visible = false
+    frame_635.Visible = true
+    blureffect_604.Enabled = true
+end)
+local scrollingframe_360 = Instance.new("ScrollingFrame")
+
+scrollingframe_360.Name = "TabFrame"
+scrollingframe_360.Size = UDim2.new(0, 130, 1, -125)
+scrollingframe_360.Position = UDim2.new(0, 8, 0, 52)
+scrollingframe_360.BackgroundTransparency = 1
+scrollingframe_360.ScrollBarThickness = 6
+scrollingframe_360.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollingframe_360.Active = true
+scrollingframe_360.ClipsDescendants = true
+scrollingframe_360.ScrollingEnabled = true
+scrollingframe_360.ZIndex = 6
+scrollingframe_360.ScrollBarImageColor3 = Color3.fromRGB(158, 56, 255)
+scrollingframe_360.ScrollBarImageTransparency = 0
+scrollingframe_360.VerticalScrollBarInset = Enum.ScrollBarInset.None
+local uilistlayout_939 = Instance.new("UIListLayout")
+
+uilistlayout_939.Padding = UDim.new(0, 8)
+local v379 = uilistlayout_939.GetPropertyChangedSignal({}, "AbsoluteContentSize")
+v379:Connect(function(arg1, arg2)
+    scrollingframe_360.CanvasSize = UDim2.new(0, 0, 0, uilistlayout_939.AbsoluteContentSize.Y + 12)
+end)
+scrollingframe_360.InputBegan:Connect(function(h, b, u)
+end)
+local frame_341 = Instance.new("Frame")
+
+frame_341.Size = UDim2.new(1, -154, 1, -60)
+frame_341.Position = UDim2.new(0, 146, 0, 52)
+frame_341.BackgroundTransparency = 1
+local scrollingframe_15 = Instance.new("ScrollingFrame")
+
+scrollingframe_15.Size = UDim2.new(1, 0, 1, 0)
+scrollingframe_15.CanvasSize = UDim2.new(0, 0, 0, 0)
+scrollingframe_15.ScrollBarThickness = 8
+scrollingframe_15.BackgroundTransparency = 1
+scrollingframe_15.Visible = false
+local uilistlayout_83 = Instance.new("UIListLayout")
+
+uilistlayout_83.Padding = UDim.new(0, 8)
+local v395 = uilistlayout_83.GetPropertyChangedSignal({}, "AbsoluteContentSize")
+v395:Connect(function(h, b, u)
+    scrollingframe_15.CanvasSize = UDim2.new(0, 0, 0, uilistlayout_83.AbsoluteContentSize.Y + 12)
+end)
+local textbutton_702 = Instance.new("TextButton")
+
+textbutton_702.Size = UDim2.new(1, -12, 0, 36)
+textbutton_702.Text = "Edit Background"
+textbutton_702.BackgroundColor3 = Color3.fromRGB(28, 16, 48)
+textbutton_702.TextColor3 = Color3.fromRGB(240, 240, 250)
+local uicorner_937 = Instance.new("UICorner")
+
+uicorner_937.CornerRadius = UDim.new(0, 6)
+uicorner_937.Parent = uicorner_937
+local frame_968 = Instance.new("Frame")
+
+frame_968.Size = UDim2.new(1, -12, 0, 32)
+frame_968.BackgroundTransparency = 1
+local textbox_87 = Instance.new("TextBox")
+
+textbox_87.Size = UDim2.new(1, 0, 1, 0)
+textbox_87.BackgroundColor3 = Color3.fromRGB(28, 16, 48)
+textbox_87.TextColor3 = Color3.fromRGB(240, 240, 250)
+textbox_87.PlaceholderText = "Paste Image ID"
+textbox_87.ClearTextOnFocus = false
+textbox_87.TextXAlignment = Enum.TextXAlignment.Left
+textbox_87.TextSize = 14
+textbox_87.TextWrapped = true
+local uicorner_834 = Instance.new("UICorner")
+
+uicorner_834.CornerRadius = UDim.new(0, 6)
+uicorner_834.Parent = uicorner_834
+textbox_87.FocusLost:Connect(function(h, b)
+    textbox_87.Text = ""
+end)
+textbox_87.Parent.Visible = false
+textbutton_702.MouseButton1Click:Connect(function(arg1, arg2)
+    local sound_763 = Instance.new("Sound")
+
+    sound_763.SoundId = "rbxassetid://8755541422"
+    sound_763.Volume = 0.4
+    sound_763.Parent = sound_763
+    local v5 = sound_763.Play({})
+    local v6 = Debris.AddItem(Debris, {}, 2)
+    textbox_87.Parent.Visible = false
+end)
+local frame_968 = Instance.new("Frame")
+
+frame_968.Size = UDim2.new(1, -12, 0, 80)
+frame_968.BackgroundTransparency = 1
+local uilistlayout_943 = Instance.new("UIListLayout")
+
+uilistlayout_943.Padding = UDim.new(0, 4)
+uilistlayout_943.FillDirection = Enum.FillDirection.Vertical
+local textbox_590 = Instance.new("TextBox")
+
+textbox_590.Size = UDim2.new(1, 0, 0, 28)
+textbox_590.BackgroundColor3 = Color3.fromRGB(28, 16, 48)
+textbox_590.TextColor3 = Color3.fromRGB(240, 240, 250)
+textbox_590.Text = "120102995443063"
+textbox_590.PlaceholderText = "Paste Music ID"
+textbox_590.ClearTextOnFocus = false
+local uicorner_768 = Instance.new("UICorner")
+
+uicorner_768.CornerRadius = UDim.new(0, 6)
+uicorner_768.Parent = uicorner_768
+textbox_590.FocusLost:Connect(function(h, b, u, X)
+    local sound_217 = Instance.new("Sound")
+
+    sound_217.SoundId = "rbxassetid://8755541422"
+    sound_217.Volume = 0.4
+    sound_217.Parent = sound_217
+    local v5 = sound_217.Play({})
+    local v6 = Debris.AddItem(Debris, {}, 2)
+    local v7 = textbox_590.Text.match(textbox_590.Text, "rbxassetid://")
+    textbox_590.Text = textbox_590.Text
+    local sound_396 = Instance.new("Sound")
+
+    sound_396.SoundId = textbox_590.Text
+    sound_396.Volume = 0.5
+    sound_396.Looped = true
+    sound_396.Parent = sound_396
+    local v14 = sound_396.Play({})
+end)
+local frame_404 = Instance.new("Frame")
+
+frame_404.Size = UDim2.new(1, 0, 0, 28)
+frame_404.BackgroundTransparency = 1
+local textlabel_183 = Instance.new("TextLabel")
+
+textlabel_183.Size = UDim2.new(0, 60, 1, 0)
+textlabel_183.Position = UDim2.new(0, 0, 0, 0)
+textlabel_183.BackgroundTransparency = 1
+textlabel_183.Text = "Volume:"
+textlabel_183.TextColor3 = Color3.fromRGB(240, 240, 250)
+textlabel_183.Font = Font.GothamSemibold
+textlabel_183.TextSize = 12
+textlabel_183.TextXAlignment = Enum.TextXAlignment.Left
+local frame_543 = Instance.new("Frame")
+
+frame_543.Size = UDim2.new(1, -68, 0, 10)
+frame_543.Position = UDim2.new(0, 68, 0.5, -5)
+frame_543.BackgroundColor3 = Color3.fromRGB(28, 16, 48)
+local uicorner_21 = Instance.new("UICorner")
+
+uicorner_21.CornerRadius = UDim.new(0, 5)
+uicorner_21.Parent = uicorner_21
+local frame_906 = Instance.new("Frame")
+
+frame_906.Size = UDim2.new(0.5, 0, 1, 0)
+frame_906.BackgroundColor3 = Color3.fromRGB(158, 56, 255)
+local uicorner_746 = Instance.new("UICorner")
+
+uicorner_746.CornerRadius = UDim.new(0, 5)
+uicorner_746.Parent = uicorner_746
+local frame_220 = Instance.new("Frame")
+
+frame_220.Size = UDim2.new(0, 10, 0, 10)
+frame_220.Position = UDim2.new(0.5, -5, 0.5, -5)
+frame_220.BackgroundColor3 = Color3.fromRGB(240, 240, 250)
+local uicorner_520 = Instance.new("UICorner")
+
+uicorner_520.CornerRadius = UDim.new(0, 5)
+uicorner_520.Parent = uicorner_520
+frame_543.InputBegan:Connect(function(h, b, u, X, O, I)
+    local relX = h.Position.X - frame_543.AbsolutePosition.X
+end)
+textlabel_183.Text = "Volume: 50%"
+local frame_508 = Instance.new("Frame")
+
+frame_508.Size = UDim2.new(1, -12, 0, 40)
+frame_508.BackgroundTransparency = 1
+local textlabel_180 = Instance.new("TextLabel")
+
+textlabel_180.Size = UDim2.new(0, 80, 1, 0)
+textlabel_180.Position = UDim2.new(0, 0, 0, 0)
+textlabel_180.BackgroundTransparency = 1
+textlabel_180.Text = "FOV:"
+textlabel_180.TextColor3 = Color3.fromRGB(240, 240, 250)
+textlabel_180.Font = Font.GothamSemibold
+textlabel_180.TextSize = 12
+textlabel_180.TextXAlignment = Enum.TextXAlignment.Left
+local frame_655 = Instance.new("Frame")
+
+frame_655.Size = UDim2.new(1, -88, 0, 10)
+frame_655.Position = UDim2.new(0, 88, 0.5, -5)
+frame_655.BackgroundColor3 = Color3.fromRGB(28, 16, 48)
+local uicorner_935 = Instance.new("UICorner")
+
+uicorner_935.CornerRadius = UDim.new(0, 5)
+uicorner_935.Parent = uicorner_935
