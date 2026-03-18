@@ -62,6 +62,14 @@ local multiDuration = 0.6
 local multiCharging = false
 local multiChargeStart = 0
 
+-- Diamond Bug
+local diamondEnabled = false
+local diamondPower = 400
+local diamondDuration = 0.9
+local diamondRequiredCharge = 1.0
+local diamondCharging = false
+local diamondChargeStart = 0
+
 -- ========== SORU AUTO AIM ==========
 getgenv().SoruAutoAim = true
 task.spawn(function()
@@ -418,8 +426,51 @@ RunService.Heartbeat:Connect(function()
         if not multiCharging then multiCharging = true multiChargeStart = tick() end
     else
         if multiCharging then
-            if (tick() - multiChargeStart) >= 2.0 then task.spawn(MegaBoost) end
+            if (tick() - multiChargeStart) >= 3.0 then task.spawn(MegaBoost) end
             multiCharging = false multiChargeStart = 0
+        end
+    end
+end)
+
+-- ========== DIAMOND BUG ==========
+local function DiamondBoost()
+    local char = player.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+    if not hrp or not hum then return end
+    local direction = (Mouse.Hit.p - hrp.Position).Unit
+    hum.PlatformStand = true
+    local att = Instance.new("Attachment", hrp)
+    local lv = Instance.new("LinearVelocity", hrp)
+    lv.MaxForce = 9999999
+    lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+    lv.VectorVelocity = direction * diamondPower
+    lv.Attachment0 = att
+    task.wait(diamondDuration)
+    if lv then lv:Destroy() end
+    if att then att:Destroy() end
+    hum.PlatformStand = false
+end
+
+RunService.Heartbeat:Connect(function()
+    if not diamondEnabled then return end
+    local char = player.Character
+    local hum = char and char:FindFirstChild("Humanoid")
+    if not hum then return end
+    local isCharging = false
+    for _, anim in pairs(hum:GetPlayingAnimationTracks()) do
+        if anim.Animation.AnimationId:find("14414815375") then
+            isCharging = true break
+        end
+    end
+    if isCharging then
+        if not diamondCharging then diamondCharging = true diamondChargeStart = tick() end
+    else
+        if diamondCharging then
+            if (tick() - diamondChargeStart) >= diamondRequiredCharge then
+                task.spawn(DiamondBoost)
+            end
+            diamondCharging = false diamondChargeStart = 0
         end
     end
 end)
@@ -813,6 +864,13 @@ local function CreateMenu()
         if not state then multiCharging = false multiChargeStart = 0 end
     end)
     AddSlider(pageGlitch, "Vitesse Propulsion", 1000, 100, 5000, function(v) multiPower = v end)
+
+    AddSection(pageGlitch, "Diamond Glitch")
+    AddToggle(pageGlitch, "Diamond Glitch (Auto CombatZ)", false, function(state)
+        diamondEnabled = state
+        if not state then diamondCharging = false diamondChargeStart = 0 end
+    end)
+    AddSlider(pageGlitch, "Puissance Diamond", 400, 100, 3000, function(v) diamondPower = v end)
 
     -- ── VISUALS ──────────────────────────────────────────────────────
     AddSection(pageVisuals, "Skin")
