@@ -904,45 +904,87 @@ local flyBodyVel  = nil
 local flyBodyGyro = nil
 local flySpeed    = 50
 
+-- Mini toggle Fly
+local flyMiniGui    = nil
+local flyMiniActive = false
+
+local function createFlyMiniToggle()
+    local playerGui = player:WaitForChild("PlayerGui")
+    if playerGui:FindFirstChild("FlyMiniGui") then playerGui.FlyMiniGui:Destroy() end
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "FlyMiniGui" sg.ResetOnSpawn = false sg.Parent = playerGui
+    local btn = Instance.new("TextButton", sg)
+    btn.Size = UDim2.new(0,80,0,40)
+    btn.Position = UDim2.new(0,10,0.5,-20)
+    btn.Text = "FLY: OFF" btn.TextScaled = true
+    btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.BorderSizePixel = 0
+    Instance.new("UICorner",btn).CornerRadius = UDim.new(0,8)
+    local grad = Instance.new("UIGradient",btn) grad.Rotation = 45
+    local function updateBtn(state)
+        btn.Text = "FLY: "..(state and "ON" or "OFF")
+        grad.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, state and Color3.fromRGB(50,200,50) or Color3.fromRGB(80,80,80)),
+            ColorSequenceKeypoint.new(1, state and Color3.fromRGB(50,255,50) or Color3.fromRGB(50,50,50)),
+        }
+    end
+    btn.MouseButton1Click:Connect(function()
+        flyMiniActive = not flyMiniActive
+        updateBtn(flyMiniActive)
+        if flyMiniActive then
+            local char = player.Character if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+            local hum = char:FindFirstChildOfClass("Humanoid") if not hum then return end
+            hum.PlatformStand = true
+            flyBodyGyro = Instance.new("BodyGyro",hrp)
+            flyBodyGyro.MaxTorque = Vector3.new(9e9,9e9,9e9) flyBodyGyro.D=100 flyBodyGyro.P=1e5
+            flyBodyVel = Instance.new("BodyVelocity",hrp)
+            flyBodyVel.MaxForce = Vector3.new(9e9,9e9,9e9) flyBodyVel.Velocity = Vector3.new(0,0,0)
+        else
+            if flyBodyVel  then flyBodyVel:Destroy()  flyBodyVel  = nil end
+            if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+            local char = player.Character if not char then return end
+            local hum = char:FindFirstChildOfClass("Humanoid") if hum then hum.PlatformStand = false end
+        end
+    end)
+    -- Drag
+    local dragging,dragStart,startPos = false,nil,nil
+    btn.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then
+            dragging=true dragStart=i.Position startPos=btn.Position
+            i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then dragging=false end end)
+        end
+    end)
+    btn.InputChanged:Connect(function(i)
+        if dragging and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement) then
+            local d=i.Position-dragStart
+            local vp=workspace.CurrentCamera.ViewportSize
+            btn.Position=UDim2.new(0,math.clamp(startPos.X.Offset+d.X,0,vp.X-btn.AbsoluteSize.X),0,math.clamp(startPos.Y.Offset+d.Y,0,vp.Y-btn.AbsoluteSize.Y))
+        end
+    end)
+    updateBtn(false)
+    flyMiniGui = sg
+end
+
 local function startFly()
-    local char = player.Character if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
-    local hum = char:FindFirstChildOfClass("Humanoid") if not hum then return end
-    hum.PlatformStand = true
-
-    flyBodyGyro = Instance.new("BodyGyro", hrp)
-    flyBodyGyro.MaxTorque = Vector3.new(9e9,9e9,9e9)
-    flyBodyGyro.D = 100 flyBodyGyro.P = 1e5
-
-    flyBodyVel = Instance.new("BodyVelocity", hrp)
-    flyBodyVel.MaxForce = Vector3.new(9e9,9e9,9e9)
-    flyBodyVel.Velocity = Vector3.new(0,0,0)
-
+    createFlyMiniToggle()
     local cam = workspace.CurrentCamera
     flyConn = RunService.RenderStepped:Connect(function()
-        if not flyEnabled then return end
+        if not flyEnabled or not flyMiniActive then return end
+        local char = player.Character if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
+        if not flyBodyVel or not flyBodyGyro then return end
         local moveDir = Vector3.new(0,0,0)
         local cf = cam.CFrame
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up) then
-            moveDir = moveDir + cf.LookVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.Down) then
-            moveDir = moveDir - cf.LookVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left) then
-            moveDir = moveDir - cf.RightVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then
-            moveDir = moveDir + cf.RightVector
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-            moveDir = moveDir + Vector3.new(0,1,0)
-        end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-            moveDir = moveDir - Vector3.new(0,1,0)
-        end
-        flyBodyVel.Velocity  = moveDir.Magnitude > 0 and moveDir.Unit * flySpeed or Vector3.new(0,0,0)
-        flyBodyGyro.CFrame   = cf
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up)    then moveDir = moveDir + cf.LookVector  end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.Down)  then moveDir = moveDir - cf.LookVector  end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left)  then moveDir = moveDir - cf.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then moveDir = moveDir + cf.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space)       then moveDir = moveDir + Vector3.new(0,1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Vector3.new(0,1,0) end
+        flyBodyVel.Velocity = moveDir.Magnitude>0 and moveDir.Unit*flySpeed or Vector3.new(0,0,0)
+        flyBodyGyro.CFrame  = cf
     end)
 end
 
@@ -950,9 +992,10 @@ local function stopFly()
     if flyConn     then flyConn:Disconnect()     flyConn     = nil end
     if flyBodyVel  then flyBodyVel:Destroy()     flyBodyVel  = nil end
     if flyBodyGyro then flyBodyGyro:Destroy()    flyBodyGyro = nil end
+    if flyMiniGui  then flyMiniGui:Destroy()     flyMiniGui  = nil end
+    flyMiniActive = false
     local char = player.Character if not char then return end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then hum.PlatformStand = false end
+    local hum = char:FindFirstChildOfClass("Humanoid") if hum then hum.PlatformStand = false end
 end
 
 -- Fly Spin
@@ -962,23 +1005,70 @@ local flySpinAngle   = 0
 local flySpinSpeed   = 50
 local flySpinHeight  = 20
 
+-- Mini toggle FlySpin
+local flySpinMiniGui    = nil
+local flySpinMiniActive = false
+
+local function createFlySpinMiniToggle()
+    local playerGui = player:WaitForChild("PlayerGui")
+    if playerGui:FindFirstChild("FlySpinMiniGui") then playerGui.FlySpinMiniGui:Destroy() end
+    local sg = Instance.new("ScreenGui")
+    sg.Name = "FlySpinMiniGui" sg.ResetOnSpawn = false sg.Parent = playerGui
+    local btn = Instance.new("TextButton", sg)
+    btn.Size = UDim2.new(0,90,0,40)
+    btn.Position = UDim2.new(0,10,0.5,30)
+    btn.Text = "SPIN: OFF" btn.TextScaled = true
+    btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.BorderSizePixel = 0
+    Instance.new("UICorner",btn).CornerRadius = UDim.new(0,8)
+    local grad = Instance.new("UIGradient",btn) grad.Rotation = 45
+    local function updateBtn(state)
+        btn.Text = "SPIN: "..(state and "ON" or "OFF")
+        grad.Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, state and Color3.fromRGB(165,100,255) or Color3.fromRGB(80,80,80)),
+            ColorSequenceKeypoint.new(1, state and Color3.fromRGB(200,50,255)  or Color3.fromRGB(50,50,50)),
+        }
+    end
+    btn.MouseButton1Click:Connect(function()
+        flySpinMiniActive = not flySpinMiniActive
+        updateBtn(flySpinMiniActive)
+    end)
+    -- Drag
+    local dragging,dragStart,startPos = false,nil,nil
+    btn.InputBegan:Connect(function(i)
+        if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then
+            dragging=true dragStart=i.Position startPos=btn.Position
+            i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then dragging=false end end)
+        end
+    end)
+    btn.InputChanged:Connect(function(i)
+        if dragging and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement) then
+            local d=i.Position-dragStart
+            local vp=workspace.CurrentCamera.ViewportSize
+            btn.Position=UDim2.new(0,math.clamp(startPos.X.Offset+d.X,0,vp.X-btn.AbsoluteSize.X),0,math.clamp(startPos.Y.Offset+d.Y,0,vp.Y-btn.AbsoluteSize.Y))
+        end
+    end)
+    updateBtn(false)
+    flySpinMiniGui = sg
+end
+
 local function startFlySpin()
+    createFlySpinMiniToggle()
     local char = player.Character if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
     local hum = char:FindFirstChildOfClass("Humanoid") if not hum then return end
     hum.PlatformStand = true
-    hrp.Anchored = true
 
     flySpinConn = RunService.Heartbeat:Connect(function()
-        if not flySpinEnabled then return end
+        if not flySpinEnabled or not flySpinMiniActive then return end
         local char2 = player.Character if not char2 then return end
         local hrp2 = char2:FindFirstChild("HumanoidRootPart") if not hrp2 then return end
-        flySpinAngle = flySpinAngle + math.rad(flySpinSpeed / 10)
+        flySpinAngle = flySpinAngle + math.rad(flySpinSpeed/10)
         local radius = 5
         local newPos = hrp2.Position + Vector3.new(
-            math.cos(flySpinAngle) * radius,
-            flySpinHeight * 0.01,
-            math.sin(flySpinAngle) * radius
+            math.cos(flySpinAngle)*radius,
+            flySpinHeight*0.01,
+            math.sin(flySpinAngle)*radius
         )
         hrp2.CFrame = CFrame.new(newPos) * CFrame.Angles(0, flySpinAngle, 0)
     end)
@@ -986,11 +1076,11 @@ end
 
 local function stopFlySpin()
     if flySpinConn then flySpinConn:Disconnect() flySpinConn = nil end
+    if flySpinMiniGui then flySpinMiniGui:Destroy() flySpinMiniGui = nil end
+    flySpinMiniActive = false
     local char = player.Character if not char then return end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if hum then hum.PlatformStand = false end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if hrp then hrp.Anchored = false end
+    local hum = char:FindFirstChildOfClass("Humanoid") if hum then hum.PlatformStand = false end
+    local hrp = char:FindFirstChild("HumanoidRootPart") if hrp then hrp.Anchored = false end
 end
 
 -- =====================================================================
@@ -1317,6 +1407,7 @@ local Window = Library:CreateWindow({
 })
 
 local Tabs = {
+    Main     = Window:AddTab("Main",     "home"),
     Legit    = Window:AddTab("Legit",    "crosshair"),
     Player   = Window:AddTab("Player",   "user"),
     Glitch   = Window:AddTab("Glitch",   "zap"),
@@ -1324,6 +1415,55 @@ local Tabs = {
     Font     = Window:AddTab("Font",     "type"),
     Settings = Window:AddTab("Settings", "settings"),
 }
+
+-- =====================================================================
+-- TAB MAIN — Soru Auto Aim
+-- =====================================================================
+local SoruBox = Tabs.Main:AddLeftGroupbox("Soru Auto Aim")
+
+-- Récupérer les joueurs pour le select
+local soruPlayerNames = {"None"}
+for _, p in pairs(Players:GetPlayers()) do
+    if p ~= player then table.insert(soruPlayerNames, p.Name) end
+end
+Players.PlayerAdded:Connect(function(p)
+    if p ~= player then table.insert(soruPlayerNames, p.Name) end
+end)
+
+SoruBox:AddToggle("SoruAimToggle", {
+    Text = "Soru Auto Aim", Default = false,
+    Tooltip = "Redirige tes attaques vers l'ennemi le plus proche",
+    Callback = function(v)
+        SilentAimPlayersEnabled = v
+        UserWantsPlayerAim = v
+        if v then startRenderLoop() else if not SilentAimNPCsEnabled then stopRenderLoop() end end
+    end,
+})
+
+SoruBox:AddDropdown("SoruSelectPlayer", {
+    Values = soruPlayerNames, Default = 1,
+    Text = "Select Target",
+    Tooltip = "Lock sur un joueur spécifique",
+    Callback = function(v)
+        if v == "None" then Selectedplayer = nil
+        else local found = Players:FindFirstChild(v) if found then Selectedplayer = found end end
+    end,
+})
+
+SoruBox:AddToggle("SoruHighlight", {
+    Text = "Highlight Target", Default = false,
+    Callback = function(v) HighlightEnabled = v if not v then clearHighlight() end end,
+})
+
+SoruBox:AddToggle("SoruPrediction", {
+    Text = "Prediction", Default = false,
+    Callback = function(v) PredictionEnabled = v end,
+})
+
+SoruBox:AddSlider("SoruDistanceLimit", {
+    Text = "Distance Max", Default = 1000, Min = 50, Max = 3000, Rounding = 0, Suffix = "m",
+    Callback = function(v) maxRange = v end,
+})
 
 -- =====================================================================
 -- TAB LEGIT — Silent Aim
@@ -1486,7 +1626,7 @@ PlayerMoveBox:AddToggle("SpeedHack", {
     Callback = function(v) speedEnabled = v if v then applySpeed() else resetSpeed() end end,
 })
 PlayerMoveBox:AddSlider("SpeedValue", {
-    Text = "Walk Speed", Default = 50, Min = 16, Max = 300, Rounding = 0,
+    Text = "Walk Speed", Default = 50, Min = 16, Max = 50000, Rounding = 0,
     Callback = function(v) speedValue = v if speedEnabled then applySpeed() end end,
 })
 PlayerMoveBox:AddDivider()
