@@ -24,10 +24,43 @@ end
 local Players          = game:GetService("Players")
 local RunService       = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
+local TweenService     = game:GetService("TweenService")
 local RS               = game:GetService("ReplicatedStorage")
-local player           = Players.LocalPlayer
+local player           = Players.LocalPlayer or Players:GetPropertyChangedSignal("LocalPlayer"):Wait() and Players.LocalPlayer
 local camera           = workspace.CurrentCamera
 local MouseModule      = RS:FindFirstChild("Mouse")
+
+print("[NAMELESS] Services OK, player=" .. tostring(player))
+
+-- =====================================================================
+-- EARLY UI INIT — construit avant tout le reste
+-- =====================================================================
+local PlayerGui = player:WaitForChild("PlayerGui", 10)
+if PlayerGui:FindFirstChild("NamelessClientGui") then
+    PlayerGui.NamelessClientGui:Destroy()
+end
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "NamelessClientGui"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.DisplayOrder = 999
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = PlayerGui
+
+local Theme = {
+    Bg      = Color3.fromRGB(10, 10, 10),
+    Panel   = Color3.fromRGB(16, 16, 16),
+    Sidebar = Color3.fromRGB(12, 12, 12),
+    Row     = Color3.fromRGB(22, 22, 22),
+    Accent  = Color3.fromRGB(140, 255, 0),
+    Text    = Color3.fromRGB(230, 230, 230),
+    Sub     = Color3.fromRGB(120, 120, 120),
+    Border  = Color3.fromRGB(35, 35, 35),
+    On      = Color3.fromRGB(100, 220, 40),
+    Off     = Color3.fromRGB(55, 55, 55),
+    Font    = Enum.Font.GothamBold,
+}
+
+print("[NAMELESS] ScreenGui created")
 
 -- =====================================================================
 -- VARIABLES SILENT AIM
@@ -1571,15 +1604,14 @@ end)
 -- HOOK __namecall
 -- =====================================================================
 local oldNamecall
-pcall(function()
+local _hookOK = pcall(function()
     oldNamecall = hookmetamethod(game, "__namecall", function(self, V1, V2, ...)
+        if not oldNamecall then return end  -- guard nil
         local method = getnamecallmethod():lower()
         if method == "fireserver" or method == "invokeserver" then
 
-            -- ✅ WHITELIST TAP — Portal jamais redirigé
             if V1 == "TAP" then return oldNamecall(self, V1, V2, ...) end
 
-            -- SORU AUTO AIM hook (InvokeServer depuis Humanoid)
             if getgenv().SoruAutoAim and CurrentTarget then
                 local method2 = getnamecallmethod()
                 if method2 == "InvokeServer" and self.Parent and tostring(self.Parent) == "Humanoid" then
@@ -1591,24 +1623,20 @@ pcall(function()
                 end
             end
 
-            -- Godhuman Z detection
             if type(V1) == "string" and V1:upper() == "Z" then
                 if currentTool and currentTool.Name == "Godhuman" then godhumanZActive = true end
             end
 
-            -- FireServer V1 = Vector3
             if method == "fireserver" and typeof(V1) == "Vector3" then
                 if SilentAimPlayersEnabled and PlayersPosition then return oldNamecall(self, PlayersPosition, V2, ...)
                 elseif SilentAimNPCsEnabled and NPCPosition then return oldNamecall(self, NPCPosition, V2, ...) end
             end
 
-            -- FireServer Booms (ZSkillorM1)
             if method == "fireserver" and type(V1) == "string" and table.find(Booms, V1) and ZSkillorM1 then
                 if SilentAimPlayersEnabled and PlayersPosition then return oldNamecall(self, V1, PlayersPosition, nil, ...)
                 elseif SilentAimNPCsEnabled and NPCPosition then return oldNamecall(self, V1, NPCPosition, nil, ...) end
             end
 
-            -- InvokeServer V2 = Vector3
             if method == "invokeserver" and typeof(V2) == "Vector3" then
                 if type(V1) == "string" and table.find(Booms, V1) and not ZSkillorM1 then
                     return oldNamecall(self, V1, V2, ...)
@@ -1672,34 +1700,9 @@ local function UpdateSilentAimState()
 end
 
 -- =====================================================================
--- CUSTOM UI — Nameless Client
+-- CUSTOM UI — Nameless Client (suite)
 -- =====================================================================
-local TweenService = game:GetService("TweenService")
-
-local PlayerGui = player:WaitForChild("PlayerGui")
-if PlayerGui:FindFirstChild("NamelessClientGui") then
-    PlayerGui.NamelessClientGui:Destroy()
-end
-
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "NamelessClientGui"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.DisplayOrder = 999
-ScreenGui.Parent = PlayerGui
-
-local Theme = {
-    Bg      = Color3.fromRGB(10, 10, 10),
-    Panel   = Color3.fromRGB(16, 16, 16),
-    Sidebar = Color3.fromRGB(12, 12, 12),
-    Row     = Color3.fromRGB(22, 22, 22),
-    Accent  = Color3.fromRGB(140, 255, 0),
-    Text    = Color3.fromRGB(230, 230, 230),
-    Sub     = Color3.fromRGB(120, 120, 120),
-    Border  = Color3.fromRGB(35, 35, 35),
-    On      = Color3.fromRGB(100, 220, 40),
-    Off     = Color3.fromRGB(55, 55, 55),
-    Font    = Enum.Font.GothamBold,
-}
+print("[NAMELESS] Building UI...")
 
 -- ── Hide/Show button ────────────────────────────────────────────────
 local HideBtn = Instance.new("TextButton", ScreenGui)
