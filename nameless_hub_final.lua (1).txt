@@ -1654,15 +1654,16 @@ end
 -- CUSTOM UI — Nameless Client
 -- =====================================================================
 local TweenService = game:GetService("TweenService")
-local PlayerGui    = player:WaitForChild("PlayerGui")
 
-if PlayerGui:FindFirstChild("NamelessClientGui") then PlayerGui.NamelessClientGui:Destroy() end
+local PlayerGui = player:WaitForChild("PlayerGui")
+if PlayerGui:FindFirstChild("NamelessClientGui") then
+    PlayerGui.NamelessClientGui:Destroy()
+end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "NamelessClientGui"
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
+ScreenGui.DisplayOrder = 999
 ScreenGui.Parent = PlayerGui
 
 local Theme = {
@@ -1686,7 +1687,6 @@ HideBtn.Position = UDim2.new(0, 8, 0, 8)
 HideBtn.BackgroundColor3 = Theme.Sidebar
 HideBtn.Text = "N" HideBtn.Font = Theme.Font HideBtn.TextSize = 20
 HideBtn.TextColor3 = Theme.Accent HideBtn.BorderSizePixel = 0
-HideBtn.ZIndex = 20
 Instance.new("UICorner", HideBtn).CornerRadius = UDim.new(0, 8)
 Instance.new("UIStroke", HideBtn).Color = Theme.Accent
 
@@ -1713,7 +1713,6 @@ Main.Size = UDim2.new(0.94, 0, 0.84, 0)
 Main.Position = UDim2.new(0.03, 0, 0.08, 0)
 Main.BackgroundColor3 = Theme.Bg
 Main.BorderSizePixel = 0
-Main.ZIndex = 2
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
 Instance.new("UIStroke", Main).Color = Theme.Border
 
@@ -1722,7 +1721,6 @@ local TitleBar = Instance.new("Frame", Main)
 TitleBar.Size = UDim2.new(1, 0, 0, 36)
 TitleBar.BackgroundColor3 = Theme.Sidebar
 TitleBar.BorderSizePixel = 0
-TitleBar.ZIndex = 3
 Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
 local TitleLbl = Instance.new("TextLabel", TitleBar)
 TitleLbl.Size = UDim2.fromScale(1, 1)
@@ -1730,14 +1728,12 @@ TitleLbl.BackgroundTransparency = 1
 TitleLbl.Text = "  ◈  NAMELESS CLIENT  —  by HimselfZen"
 TitleLbl.Font = Theme.Font TitleLbl.TextSize = 14
 TitleLbl.TextColor3 = Theme.Accent TitleLbl.TextXAlignment = "Left"
-TitleLbl.ZIndex = 4
 
 -- ── Sidebar ─────────────────────────────────────────────────────────
 local Sidebar = Instance.new("Frame", Main)
 Sidebar.Size = UDim2.new(0, 68, 1, -40)
 Sidebar.Position = UDim2.new(0, 0, 0, 38)
 Sidebar.BackgroundColor3 = Theme.Sidebar
-Sidebar.BorderSizePixel = 0 Sidebar.ZIndex = 3
 Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 8)
 local SideLayout = Instance.new("UIListLayout", Sidebar)
 SideLayout.HorizontalAlignment = "Center" SideLayout.Padding = UDim.new(0,4)
@@ -1749,7 +1745,6 @@ local Content = Instance.new("Frame", Main)
 Content.Size = UDim2.new(1, -76, 1, -42)
 Content.Position = UDim2.new(0, 72, 0, 40)
 Content.BackgroundColor3 = Theme.Panel
-Content.BorderSizePixel = 0 Content.ZIndex = 3
 Instance.new("UICorner", Content).CornerRadius = UDim.new(0, 8)
 
 -- Toggle visibility
@@ -1781,7 +1776,6 @@ end)
 -- ── Dropdown overlay ────────────────────────────────────────────────
 local DropOverlay = Instance.new("TextButton", ScreenGui)
 DropOverlay.Size = UDim2.fromScale(1,1) DropOverlay.BackgroundTransparency = 1
-DropOverlay.Text = "" DropOverlay.ZIndex = 15 DropOverlay.Visible = false
 local openDropdown = nil
 local function closeDropdown()
     if openDropdown then openDropdown.Visible = false openDropdown = nil DropOverlay.Visible = false end
@@ -1797,7 +1791,6 @@ local function AddTab(name, icon)
     local Page = Instance.new("ScrollingFrame", Content)
     Page.Size = UDim2.fromScale(1,1) Page.BackgroundTransparency = 1
     Page.Visible = false Page.ScrollBarThickness = 3
-    Page.CanvasSize = UDim2.new(0,0,0,0) Page.ZIndex = 4
     local Layout = Instance.new("UIListLayout", Page)
     Layout.Padding = UDim.new(0,5) Layout.SortOrder = "LayoutOrder"
     Layout.HorizontalAlignment = "Left"
@@ -1812,7 +1805,6 @@ local function AddTab(name, icon)
     Btn.Size = UDim2.fromOffset(60, 54)
     Btn.BackgroundTransparency = 1
     Btn.Text = icon.."\n"..name Btn.Font = Theme.Font Btn.TextSize = 11
-    Btn.TextColor3 = Theme.Sub Btn.TextWrapped = true Btn.ZIndex = 4
     Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 6)
     Btn.MouseButton1Click:Connect(function()
         closeDropdown()
