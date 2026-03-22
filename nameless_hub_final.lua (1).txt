@@ -1653,16 +1653,17 @@ end
 -- =====================================================================
 -- CUSTOM UI — Nameless Client
 -- =====================================================================
-local TweenService  = game:GetService("TweenService")
-local CoreGui       = game:GetService("CoreGui")
+local TweenService = game:GetService("TweenService")
+local PlayerGui    = player:WaitForChild("PlayerGui")
 
-if CoreGui:FindFirstChild("NamelessClientGui") then CoreGui.NamelessClientGui:Destroy() end
+if PlayerGui:FindFirstChild("NamelessClientGui") then PlayerGui.NamelessClientGui:Destroy() end
 
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "NamelessClientGui"
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.ResetOnSpawn = false
-ScreenGui.Parent = (cloneref and cloneref(CoreGui) or CoreGui)
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = PlayerGui
 
 local Theme = {
     Bg      = Color3.fromRGB(10, 10, 10),
@@ -1694,57 +1695,27 @@ local _hd, _hds, _hbp = false, nil, nil
 HideBtn.InputBegan:Connect(function(i)
     if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
         _hd=true _hds=i.Position _hbp=HideBtn.Position
+        i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then _hd=false end end)
     end
 end)
-UserInputService.InputChanged:Connect(function(i)
+HideBtn.InputChanged:Connect(function(i)
     if not _hd then return end
     if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseMovement then
         local d=i.Position-_hds
-        HideBtn.Position=UDim2.new(0,math.clamp(_hbp.X.Offset+d.X,0,workspace.CurrentCamera.ViewportSize.X-50),0,math.clamp(_hbp.Y.Offset+d.Y,0,workspace.CurrentCamera.ViewportSize.Y-50))
+        local vp=workspace.CurrentCamera.ViewportSize
+        HideBtn.Position=UDim2.new(0,math.clamp(_hbp.X.Offset+d.X,0,vp.X-50),0,math.clamp(_hbp.Y.Offset+d.Y,0,vp.Y-50))
     end
-end)
-UserInputService.InputEnded:Connect(function(i)
-    if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then _hd=false end
 end)
 
 -- ── Main Frame ──────────────────────────────────────────────────────
 local Main = Instance.new("Frame", ScreenGui)
 Main.Size = UDim2.new(0.94, 0, 0.84, 0)
-Main.Position = UDim2.fromScale(0.5, 0.5)
-Main.AnchorPoint = Vector2.new(0.5, 0.5)
+Main.Position = UDim2.new(0.03, 0, 0.08, 0)
 Main.BackgroundColor3 = Theme.Bg
 Main.BorderSizePixel = 0
 Main.ZIndex = 2
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
 Instance.new("UIStroke", Main).Color = Theme.Border
-
--- Drag Main
-local _md2, _mds, _mmp = false, nil, nil
-Main.InputBegan:Connect(function(i)
-    if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then
-        _md2=true _mds=i.Position _mmp=Main.Position
-    end
-end)
-UserInputService.InputChanged:Connect(function(i)
-    if not _md2 then return end
-    if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement then
-        local d=i.Position-_mds
-        local vp=workspace.CurrentCamera.ViewportSize
-        Main.Position=UDim2.new(0,math.clamp(_mmp.X.Offset+d.X,-(Main.AbsoluteSize.X*0.4),vp.X-(Main.AbsoluteSize.X*0.6)),0,math.clamp(_mmp.Y.Offset+d.Y,0,vp.Y-Main.AbsoluteSize.Y))
-    end
-end)
-UserInputService.InputEnded:Connect(function(i)
-    if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then _md2=false end
-end)
-
--- Toggle visibility
-local menuVisible = true
-HideBtn.MouseButton1Click:Connect(function()
-    menuVisible = not menuVisible
-    Main.Visible = menuVisible
-    HideBtn.Text = menuVisible and "N" or "▪"
-    HideBtn.TextColor3 = menuVisible and Theme.Accent or Theme.Sub
-end)
 
 -- ── Title bar ───────────────────────────────────────────────────────
 local TitleBar = Instance.new("Frame", Main)
@@ -1780,6 +1751,32 @@ Content.Position = UDim2.new(0, 72, 0, 40)
 Content.BackgroundColor3 = Theme.Panel
 Content.BorderSizePixel = 0 Content.ZIndex = 3
 Instance.new("UICorner", Content).CornerRadius = UDim.new(0, 8)
+
+-- Toggle visibility
+local menuVisible = true
+HideBtn.MouseButton1Click:Connect(function()
+    menuVisible = not menuVisible
+    Main.Visible = menuVisible
+    HideBtn.Text = menuVisible and "N" or "▪"
+    HideBtn.TextColor3 = menuVisible and Theme.Accent or Theme.Sub
+end)
+
+-- Drag Main via TitleBar (après création)
+local _md2, _mds, _mmp = false, nil, nil
+TitleBar.InputBegan:Connect(function(i)
+    if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then
+        _md2=true _mds=i.Position _mmp=Main.Position
+        i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then _md2=false end end)
+    end
+end)
+TitleBar.InputChanged:Connect(function(i)
+    if not _md2 then return end
+    if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement then
+        local d=i.Position-_mds
+        local vp=workspace.CurrentCamera.ViewportSize
+        Main.Position=UDim2.new(0,math.clamp(_mmp.X.Offset+d.X,0,vp.X-Main.AbsoluteSize.X),0,math.clamp(_mmp.Y.Offset+d.Y,0,vp.Y-Main.AbsoluteSize.Y))
+    end
+end)
 
 -- ── Dropdown overlay ────────────────────────────────────────────────
 local DropOverlay = Instance.new("TextButton", ScreenGui)
