@@ -51,13 +51,15 @@ local MiniNpcCreated    = false
 local MiniPlayerGui, MiniNpcGui = nil, nil
 local characterConnections = {}
 
--- ZSkill Godhuman
-local ZSkillsEnabled  = false
-local godhumanZActive = false
-local aimlockActive   = false
-local aimRenderConn   = nil
-local aimTimeoutTask  = nil
-local nearestZTarget  = nil
+-- ZSkill Godhuman (toujours actif, pas de toggle)
+local godhumanZActive    = false
+local aimlockActive      = false
+local aimRenderConn      = nil
+local aimTimeoutTask     = nil
+local nearestZTarget     = nil
+local aimDmgConn         = nil
+local TargetInfo         = false
+local targetInfoConn     = nil
 
 -- TAP whitelisté = Portal jamais redirigé
 local Booms  = {}
@@ -292,7 +294,7 @@ local function stopRenderLoop()
 end
 
 -- =====================================================================
--- ZSKILL GODHUMAN AIMLOCK
+-- ZSKILL GODHUMAN AIMLOCK (toujours actif)
 -- =====================================================================
 local function stopAimlock()
     if not aimlockActive then return end
@@ -302,15 +304,14 @@ local function stopAimlock()
 end
 
 local function startAimlock()
-    if not ZSkillsEnabled or aimlockActive then return end
+    if aimlockActive then return end
     local char = player.Character
     local lpHRP = char and char:FindFirstChild("HumanoidRootPart")
     local target = getClosestPlayer(lpHRP)
-    if not target then return end
+    if not target or not target.Character then return end
     nearestZTarget = target.Character aimlockActive = true
 
     aimRenderConn = RunService.RenderStepped:Connect(function()
-        if not ZSkillsEnabled then stopAimlock() return end
         if aimlockActive and nearestZTarget and nearestZTarget:FindFirstChild("HumanoidRootPart") then
             local cam = workspace.CurrentCamera
             if cam then cam.CFrame = CFrame.lookAt(cam.CFrame.Position, nearestZTarget.HumanoidRootPart.Position) end
@@ -319,8 +320,24 @@ local function startAimlock()
     aimTimeoutTask = task.delay(1, function() if aimlockActive then stopAimlock() end end)
 end
 
+-- Stoppe l'aimlock si un dégât est détecté pendant le Z
+local function watchAimlockDamage()
+    if aimDmgConn then pcall(function() aimDmgConn:Disconnect() end) aimDmgConn = nil end
+    task.spawn(function()
+        local gui = player:FindFirstChild("PlayerGui") and player.PlayerGui:FindFirstChild("Main")
+        if not gui then return end
+        local dmgCounter = gui:FindFirstChild("DmgCounter")
+        if not dmgCounter then return end
+        local dmgLabel = dmgCounter:FindFirstChild("Text")
+        if not dmgLabel then return end
+        aimDmgConn = dmgLabel:GetPropertyChangedSignal("Text"):Connect(function()
+            local v = tonumber(dmgLabel.Text) or 0
+            if v > 0 and aimlockActive then stopAimlock() end
+        end)
+    end)
+end
+
 UserInputService.TouchEnded:Connect(function(touch)
-    if not ZSkillsEnabled then return end
     local cam = workspace.CurrentCamera
     if not cam or not touch or not touch.Position then return end
     if touch.Position.X > cam.ViewportSize.X / 2 then
@@ -334,6 +351,63 @@ end)
 -- AUTO KEN
 -- =====================================================================
 local commE = RS:FindFirstChild("Remotes") and RS.Remotes:FindFirstChild("CommE")
+
+-- =====================================================================
+-- TARGET INFO UI (HP + Nom cible)
+-- =====================================================================
+local targetInfoSG = Instance.new("ScreenGui")
+targetInfoSG.Name = "ZTargetInfoGui" targetInfoSG.ResetOnSpawn = false
+targetInfoSG.Parent = player:WaitForChild("PlayerGui")
+
+local targetFrame = Instance.new("Frame", targetInfoSG)
+targetFrame.Size = UDim2.new(0.25, 0, 0.08, 0)
+targetFrame.Position = UDim2.new(0.5, 0, 0.05, 0)
+targetFrame.AnchorPoint = Vector2.new(0.5, 0)
+targetFrame.BackgroundTransparency = 1
+targetFrame.Visible = false
+
+local targetNameLbl = Instance.new("TextLabel", targetFrame)
+targetNameLbl.Size = UDim2.new(1, 0, 0.5, 0)
+targetNameLbl.BackgroundTransparency = 1
+targetNameLbl.TextScaled = true
+targetNameLbl.Font = Enum.Font.GothamBold
+targetNameLbl.TextColor3 = Color3.new(1,1,1)
+
+local hpBg = Instance.new("Frame", targetFrame)
+hpBg.Size = UDim2.new(1, 0, 0.35, 0)
+hpBg.Position = UDim2.new(0, 0, 0.55, 0)
+hpBg.BackgroundColor3 = Color3.fromRGB(40,40,40)
+hpBg.BorderSizePixel = 0
+
+local hpFillBar = Instance.new("Frame", hpBg)
+hpFillBar.Size = UDim2.new(1, 0, 1, 0)
+hpFillBar.BackgroundColor3 = Color3.fromRGB(0,255,0)
+hpFillBar.BorderSizePixel = 0
+
+local function startTargetInfo()
+    if targetInfoConn then return end
+    targetInfoConn = RunService.RenderStepped:Connect(function()
+        local char = player.Character
+        local lpHRP = char and char:FindFirstChild("HumanoidRootPart")
+        local target = getClosestPlayer(lpHRP)
+        if target and target.Character and target.Character:FindFirstChild("Humanoid") then
+            local hp = target.Character.Humanoid
+            targetNameLbl.Text = target.Name
+            local fill = math.clamp(hp.Health / hp.MaxHealth, 0, 1)
+            hpFillBar.Size = UDim2.new(fill, 0, 1, 0)
+            hpFillBar.BackgroundColor3 = Color3.fromRGB(math.floor(255*(1-fill)), math.floor(255*fill), 0)
+            hpBg.Visible = true hpFillBar.Visible = true targetFrame.Visible = true
+        else
+            targetNameLbl.Text = "No target"
+            hpBg.Visible = false hpFillBar.Visible = false targetFrame.Visible = true
+        end
+    end)
+end
+
+local function stopTargetInfo()
+    if targetInfoConn then targetInfoConn:Disconnect() targetInfoConn = nil end
+    targetFrame.Visible = false
+end
 local function HasTag(tagName)
     local char = player.Character
     if not char then return false end
@@ -381,6 +455,12 @@ local ESPHeadDot      = false
 local ESPOffScreen    = false
 local ESPChams        = false
 local ESPNPCEnabled   = false
+-- Flags NPC indépendants
+local ESPNPCBox_v     = true
+local ESPNPCName_v    = true
+local ESPNPCDist_v    = true
+local ESPNPCHp_v      = true
+local ESPNPCChams_v   = false
 
 local espObjects      = {}
 local espConnection   = nil
@@ -613,7 +693,7 @@ local function updateESP(target, key, isNPC)
     d.boxBot.From=Vector2.new(left,botY)   d.boxBot.To=Vector2.new(right,botY)
     d.boxLeft.From=Vector2.new(left,topY)  d.boxLeft.To=Vector2.new(left,botY)
     d.boxRight.From=Vector2.new(right,topY) d.boxRight.To=Vector2.new(right,botY)
-    for _, b in ipairs({d.boxTop,d.boxBot,d.boxLeft,d.boxRight}) do b.Color=col b.Visible=ESPBox end
+    for _, b in ipairs({d.boxTop,d.boxBot,d.boxLeft,d.boxRight}) do b.Color=col b.Visible=(isNPC and ESPNPCBox_v or ESPBox) end
 
     -- ===== CORNER BOX =====
     local cl = cornerLen
@@ -644,20 +724,20 @@ local function updateESP(target, key, isNPC)
 
     -- ===== NAME =====
     local nameStr = isNPC and char.Name or char.Name
-    d.name.Text=nameStr d.name.Position=Vector2.new(cx,topY-16) d.name.Color=col d.name.Visible=ESPName
+    d.name.Text=nameStr d.name.Position=Vector2.new(cx,topY-16) d.name.Color=col d.name.Visible=(isNPC and ESPNPCName_v or ESPName)
 
     -- ===== DISTANCE =====
-    d.dist.Text=dist.."m" d.dist.Position=Vector2.new(cx,botY+2) d.dist.Visible=ESPDistance
+    d.dist.Text=dist.."m" d.dist.Position=Vector2.new(cx,botY+2) d.dist.Visible=(isNPC and ESPNPCDist_v or ESPDistance)
 
     -- ===== HEALTH BAR =====
     local hpRatio = math.clamp(hum.Health/hum.MaxHealth,0,1)
     local barX = left - 6
     local hpColor = Color3.fromRGB(math.floor(255*(1-hpRatio)), math.floor(255*hpRatio), 0)
     d.hpBg.From=Vector2.new(barX,topY) d.hpBg.To=Vector2.new(barX,botY)
-    d.hpBg.Color=Color3.fromRGB(40,40,40) d.hpBg.Visible=ESPHealthBar
+    d.hpBg.Color=Color3.fromRGB(40,40,40) d.hpBg.Visible=(isNPC and ESPNPCHp_v or ESPHealthBar)
     local fillY = botY-(botY-topY)*hpRatio
     d.hpFill.From=Vector2.new(barX,fillY) d.hpFill.To=Vector2.new(barX,botY)
-    d.hpFill.Color=hpColor d.hpFill.Visible=ESPHealthBar
+    d.hpFill.Color=hpColor d.hpFill.Visible=(isNPC and ESPNPCHp_v or ESPHealthBar)
 
     -- ===== HEALTH NUMBER =====
     d.hpNum.Text=math.floor(hum.Health).."/"..math.floor(hum.MaxHealth)
@@ -717,7 +797,7 @@ local function updateESP(target, key, isNPC)
     end
 
     -- ===== CHAMS =====
-    if ESPChams then
+    if (isNPC and ESPNPCChams_v) or (not isNPC and ESPChams) then
         applyChams(char, col)
     else
         removeChams(char)
@@ -884,16 +964,15 @@ end
 -- Speed Hack
 local speedEnabled = false
 local speedValue   = 50
-
-local speedConn = nil
+local speedConn    = nil
 
 local function applySpeed()
-    if speedConn then speedConn:Disconnect() end
+    if speedConn then speedConn:Disconnect() speedConn = nil end
     speedConn = RunService.Heartbeat:Connect(function()
         if not speedEnabled then return end
-        local char = player.Character if not char then return end
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hum then hum.WalkSpeed = speedValue end
+        local c = player.Character
+        local h = c and c:FindFirstChildOfClass("Humanoid")
+        if h then h.WalkSpeed = speedValue end
     end)
 end
 
@@ -907,35 +986,110 @@ end
 -- Fly Normal
 local flyEnabled  = false
 local flyConn     = nil
-local flyBodyVel  = nil
-local flyBodyGyro = nil
+local flyAtt      = nil
+local flyLV       = nil
 local flySpeed    = 50
 
 -- Mini toggle Fly
 local flyMiniGui    = nil
 local flyMiniActive = false
+local _flyUp        = false
+local _flyDown      = false
 
 local function createFlyMiniToggle()
     local playerGui = player:WaitForChild("PlayerGui")
     if playerGui:FindFirstChild("FlyMiniGui") then playerGui.FlyMiniGui:Destroy() end
     local sg = Instance.new("ScreenGui")
     sg.Name = "FlyMiniGui" sg.ResetOnSpawn = false sg.Parent = playerGui
-    local btn = Instance.new("TextButton", sg)
-    btn.Size = UDim2.new(0,80,0,40)
-    btn.Position = UDim2.new(0,10,0.5,-20)
-    btn.Text = "FLY: OFF" btn.TextScaled = true
-    btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
+
+    -- Panel principal
+    local panel = Instance.new("Frame", sg)
+    panel.Size = UDim2.new(0, 155, 0, 130)
+    panel.Position = UDim2.new(0, 10, 0.5, -65)
+    panel.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
+    panel.BorderSizePixel = 0
+    Instance.new("UICorner", panel).CornerRadius = UDim.new(0, 14)
+    local panelStroke = Instance.new("UIStroke", panel)
+    panelStroke.Color = Color3.fromRGB(60,60,60) panelStroke.Thickness = 1
+
+    -- Bouton toggle FLY
+    local btn = Instance.new("TextButton", panel)
+    btn.Size = UDim2.new(1, -10, 0, 40)
+    btn.Position = UDim2.new(0, 5, 0, 5)
+    btn.Text = "✈  FLY: OFF"
+    btn.TextScaled = true
+    btn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.BorderSizePixel = 0
-    Instance.new("UICorner",btn).CornerRadius = UDim.new(0,8)
-    local grad = Instance.new("UIGradient",btn) grad.Rotation = 45
+    btn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 10)
+    local grad = Instance.new("UIGradient", btn) grad.Rotation = 45
+
+    -- Speed label
+    local speedLbl = Instance.new("TextLabel", panel)
+    speedLbl.Size = UDim2.new(1, -10, 0, 20)
+    speedLbl.Position = UDim2.new(0, 5, 0, 50)
+    speedLbl.BackgroundTransparency = 1
+    speedLbl.Text = "Speed: " .. flySpeed
+    speedLbl.TextScaled = true
+    speedLbl.TextColor3 = Color3.fromRGB(160, 160, 160)
+    speedLbl.Font = Enum.Font.Gotham
+
+    -- Séparateur
+    local sep = Instance.new("Frame", panel)
+    sep.Size = UDim2.new(1, -20, 0, 1)
+    sep.Position = UDim2.new(0, 10, 0, 75)
+    sep.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+    sep.BorderSizePixel = 0
+
+    -- Bouton UP
+    local upBtn = Instance.new("TextButton", panel)
+    upBtn.Size = UDim2.new(0, 67, 0, 42)
+    upBtn.Position = UDim2.new(0, 5, 0, 82)
+    upBtn.Text = "⬆  UP"
+    upBtn.TextScaled = true
+    upBtn.BackgroundColor3 = Color3.fromRGB(30, 80, 200)
+    upBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    upBtn.BorderSizePixel = 0
+    upBtn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", upBtn).CornerRadius = UDim.new(0, 10)
+
+    -- Bouton DOWN
+    local downBtn = Instance.new("TextButton", panel)
+    downBtn.Size = UDim2.new(0, 67, 0, 42)
+    downBtn.Position = UDim2.new(0, 80, 0, 82)
+    downBtn.Text = "⬇  DN"
+    downBtn.TextScaled = true
+    downBtn.BackgroundColor3 = Color3.fromRGB(180, 50, 35)
+    downBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    downBtn.BorderSizePixel = 0
+    downBtn.Font = Enum.Font.GothamBold
+    Instance.new("UICorner", downBtn).CornerRadius = UDim.new(0, 10)
+
+    -- Touch UP
+    upBtn.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then _flyUp = true end
+    end)
+    upBtn.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then _flyUp = false end
+    end)
+    -- Touch DOWN
+    downBtn.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then _flyDown = true end
+    end)
+    downBtn.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then _flyDown = false end
+    end)
+
     local function updateBtn(state)
-        btn.Text = "FLY: "..(state and "ON" or "OFF")
+        btn.Text = "✈  FLY: " .. (state and "ON" or "OFF")
+        speedLbl.Text = "Speed: " .. flySpeed
         grad.Color = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, state and Color3.fromRGB(50,200,50) or Color3.fromRGB(80,80,80)),
-            ColorSequenceKeypoint.new(1, state and Color3.fromRGB(50,255,50) or Color3.fromRGB(50,50,50)),
+            ColorSequenceKeypoint.new(0, state and Color3.fromRGB(50,200,50) or Color3.fromRGB(70,70,70)),
+            ColorSequenceKeypoint.new(1, state and Color3.fromRGB(50,255,50) or Color3.fromRGB(40,40,40)),
         }
     end
+
     btn.MouseButton1Click:Connect(function()
         flyMiniActive = not flyMiniActive
         updateBtn(flyMiniActive)
@@ -944,32 +1098,37 @@ local function createFlyMiniToggle()
             local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
             local hum = char:FindFirstChildOfClass("Humanoid") if not hum then return end
             hum.PlatformStand = true
-            flyBodyGyro = Instance.new("BodyGyro",hrp)
-            flyBodyGyro.MaxTorque = Vector3.new(9e9,9e9,9e9) flyBodyGyro.D=100 flyBodyGyro.P=1e5
-            flyBodyVel = Instance.new("BodyVelocity",hrp)
-            flyBodyVel.MaxForce = Vector3.new(9e9,9e9,9e9) flyBodyVel.Velocity = Vector3.new(0,0,0)
+            flyAtt = Instance.new("Attachment", hrp)
+            flyLV = Instance.new("LinearVelocity", hrp)
+            flyLV.MaxForce = math.huge
+            flyLV.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+            flyLV.VectorVelocity = Vector3.new(0, 0, 0)
+            flyLV.Attachment0 = flyAtt
         else
-            if flyBodyVel  then flyBodyVel:Destroy()  flyBodyVel  = nil end
-            if flyBodyGyro then flyBodyGyro:Destroy() flyBodyGyro = nil end
+            _flyUp = false _flyDown = false
+            if flyLV  then flyLV:Destroy()  flyLV  = nil end
+            if flyAtt then flyAtt:Destroy() flyAtt = nil end
             local char = player.Character if not char then return end
             local hum = char:FindFirstChildOfClass("Humanoid") if hum then hum.PlatformStand = false end
         end
     end)
-    -- Drag
-    local dragging,dragStart,startPos = false,nil,nil
-    btn.InputBegan:Connect(function(i)
-        if i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseButton1 then
-            dragging=true dragStart=i.Position startPos=btn.Position
+
+    -- Drag du panel entier
+    local dragging, dragStart, startPos = false, nil, nil
+    panel.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.Touch or i.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging=true dragStart=i.Position startPos=panel.Position
             i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then dragging=false end end)
         end
     end)
-    btn.InputChanged:Connect(function(i)
+    panel.InputChanged:Connect(function(i)
         if dragging and (i.UserInputType==Enum.UserInputType.Touch or i.UserInputType==Enum.UserInputType.MouseMovement) then
             local d=i.Position-dragStart
             local vp=workspace.CurrentCamera.ViewportSize
-            btn.Position=UDim2.new(0,math.clamp(startPos.X.Offset+d.X,0,vp.X-btn.AbsoluteSize.X),0,math.clamp(startPos.Y.Offset+d.Y,0,vp.Y-btn.AbsoluteSize.Y))
+            panel.Position=UDim2.new(0,math.clamp(startPos.X.Offset+d.X,0,vp.X-panel.AbsoluteSize.X),0,math.clamp(startPos.Y.Offset+d.Y,0,vp.Y-panel.AbsoluteSize.Y))
         end
     end)
+
     updateBtn(false)
     flyMiniGui = sg
 end
@@ -981,26 +1140,37 @@ local function startFly()
         if not flyEnabled or not flyMiniActive then return end
         local char = player.Character if not char then return end
         local hrp = char:FindFirstChild("HumanoidRootPart") if not hrp then return end
-        if not flyBodyVel or not flyBodyGyro then return end
+        local hum = char:FindFirstChildOfClass("Humanoid") if not hum then return end
+        if not flyLV or not flyAtt then return end
         local moveDir = Vector3.new(0,0,0)
         local cf = cam.CFrame
+
+        -- Mobile joystick (MoveDirection)
+        local md = hum.MoveDirection
+        if md.Magnitude > 0.1 then
+            moveDir = moveDir + Vector3.new(md.X, 0, md.Z)
+        end
+
+        -- PC : WASD fallback
         if UserInputService:IsKeyDown(Enum.KeyCode.W) or UserInputService:IsKeyDown(Enum.KeyCode.Up)    then moveDir = moveDir + cf.LookVector  end
         if UserInputService:IsKeyDown(Enum.KeyCode.S) or UserInputService:IsKeyDown(Enum.KeyCode.Down)  then moveDir = moveDir - cf.LookVector  end
         if UserInputService:IsKeyDown(Enum.KeyCode.A) or UserInputService:IsKeyDown(Enum.KeyCode.Left)  then moveDir = moveDir - cf.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.D) or UserInputService:IsKeyDown(Enum.KeyCode.Right) then moveDir = moveDir + cf.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space)       then moveDir = moveDir + Vector3.new(0,1,0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Vector3.new(0,1,0) end
-        flyBodyVel.Velocity = moveDir.Magnitude>0 and moveDir.Unit*flySpeed or Vector3.new(0,0,0)
-        flyBodyGyro.CFrame  = cf
+
+        -- UP/DOWN : boutons mini (mobile) ou Space/Ctrl (PC)
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space)       or _flyUp   then moveDir = moveDir + Vector3.new(0,1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) or _flyDown then moveDir = moveDir - Vector3.new(0,1,0) end
+
+        flyLV.VectorVelocity = moveDir.Magnitude > 0 and moveDir.Unit * flySpeed or Vector3.new(0,0,0)
     end)
 end
 
 local function stopFly()
-    if flyConn     then flyConn:Disconnect()     flyConn     = nil end
-    if flyBodyVel  then flyBodyVel:Destroy()     flyBodyVel  = nil end
-    if flyBodyGyro then flyBodyGyro:Destroy()    flyBodyGyro = nil end
-    if flyMiniGui  then flyMiniGui:Destroy()     flyMiniGui  = nil end
-    flyMiniActive = false
+    if flyConn then flyConn:Disconnect() flyConn = nil end
+    if flyLV   then flyLV:Destroy()  flyLV  = nil end
+    if flyAtt  then flyAtt:Destroy() flyAtt = nil end
+    if flyMiniGui then flyMiniGui:Destroy() flyMiniGui = nil end
+    flyMiniActive = false _flyUp = false _flyDown = false
     local char = player.Character if not char then return end
     local hum = char:FindFirstChildOfClass("Humanoid") if hum then hum.PlatformStand = false end
 end
@@ -1062,22 +1232,13 @@ end
 
 local function startFlySpin()
     createFlySpinMiniToggle()
-    local char = player.Character if not char then return end
-    local hum = char:FindFirstChildOfClass("Humanoid") if not hum then return end
-    hum.PlatformStand = true
-
+    -- Rotation pure sur place, pas de déplacement
     flySpinConn = RunService.Heartbeat:Connect(function()
         if not flySpinEnabled or not flySpinMiniActive then return end
         local char2 = player.Character if not char2 then return end
         local hrp2 = char2:FindFirstChild("HumanoidRootPart") if not hrp2 then return end
-        flySpinAngle = flySpinAngle + math.rad(flySpinSpeed/10)
-        local radius = 5
-        local newPos = hrp2.Position + Vector3.new(
-            math.cos(flySpinAngle)*radius,
-            flySpinHeight*0.01,
-            math.sin(flySpinAngle)*radius
-        )
-        hrp2.CFrame = CFrame.new(newPos) * CFrame.Angles(0, flySpinAngle, 0)
+        flySpinAngle = flySpinAngle + math.rad(flySpinSpeed / 10)
+        hrp2.CFrame = CFrame.new(hrp2.Position) * CFrame.Angles(0, flySpinAngle, 0)
     end)
 end
 
@@ -1085,17 +1246,15 @@ local function stopFlySpin()
     if flySpinConn then flySpinConn:Disconnect() flySpinConn = nil end
     if flySpinMiniGui then flySpinMiniGui:Destroy() flySpinMiniGui = nil end
     flySpinMiniActive = false
-    local char = player.Character if not char then return end
-    local hum = char:FindFirstChildOfClass("Humanoid") if hum then hum.PlatformStand = false end
-    local hrp = char:FindFirstChild("HumanoidRootPart") if hrp then hrp.Anchored = false end
+    flySpinAngle = 0
 end
 
 -- =====================================================================
 -- GLITCH FEATURES — Sanguine Z + Diamond
 -- =====================================================================
 local multiEnabled    = false
-local multiPower      = 1000
-local multiDuration   = 0.6
+local multiPower      = 400
+local multiDuration   = 0.9
 local multiCharging   = false
 local multiChargeStart = 0
 
@@ -1106,6 +1265,7 @@ local diamondRequiredCharge  = 1.0
 local diamondCharging        = false
 local diamondChargeStart     = 0
 
+-- ========== SANGUINE GLITCH ==========
 local function MegaBoost()
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -1121,7 +1281,7 @@ local function MegaBoost()
     lv.VectorVelocity = direction * multiPower
     lv.Attachment0 = att
     task.wait(multiDuration)
-    if lv  then lv:Destroy()  end
+    if lv then lv:Destroy() end
     if att then att:Destroy() end
     hum.PlatformStand = false
 end
@@ -1141,12 +1301,13 @@ RunService.Heartbeat:Connect(function()
         if not multiCharging then multiCharging = true multiChargeStart = tick() end
     else
         if multiCharging then
-            if (tick() - multiChargeStart) >= 3.0 then task.spawn(MegaBoost) end
+            if (tick() - multiChargeStart) >= 2.0 then task.spawn(MegaBoost) end
             multiCharging = false multiChargeStart = 0
         end
     end
 end)
 
+-- ========== DIAMOND BUG ==========
 local function DiamondBoost()
     local char = player.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
@@ -1161,7 +1322,7 @@ local function DiamondBoost()
     lv.VectorVelocity = direction * diamondPower
     lv.Attachment0 = att
     task.wait(diamondDuration)
-    if lv  then lv:Destroy()  end
+    if lv then lv:Destroy() end
     if att then att:Destroy() end
     hum.PlatformStand = false
 end
@@ -1188,37 +1349,6 @@ RunService.Heartbeat:Connect(function()
         end
     end
 end)
-
--- =====================================================================
--- FONT CHANGER
--- =====================================================================
-local fontChangerEnabled = false
-local fontPreset         = "GothamSsm"
-local updatedFonts       = {}
-local fontConn2          = nil
-
-local function applyFontTo(inst)
-    if not (inst.ClassName=="TextLabel" or inst.ClassName=="TextButton" or inst.ClassName=="TextBox") then return end
-    local original = tostring(inst.Font):split(".")[3] or "GothamSsm"
-    local conn = inst:GetPropertyChangedSignal("Font"):Connect(function()
-        pcall(function() inst.Font = Enum.Font[fontPreset] end)
-    end)
-    table.insert(updatedFonts, {inst=inst, original=original, conn=conn})
-    pcall(function() inst.Font = Enum.Font[fontPreset] end)
-end
-
-local function enableFonts()
-    fontConn2 = game.DescendantAdded:Connect(function(v) pcall(applyFontTo, v) end)
-    for _, v in game:GetDescendants() do pcall(applyFontTo, v) end
-end
-
-local function disableFonts()
-    pcall(function() if fontConn2 then fontConn2:Disconnect() end end)
-    for _, e in ipairs(updatedFonts) do
-        pcall(function() e.conn:Disconnect() e.inst.Font = Enum.Font[e.original] or Enum.Font.GothamSsm end)
-    end
-    table.clear(updatedFonts)
-end
 
 -- =====================================================================
 -- VSKILL MODULE — Pause/Restore pendant skills spéciaux
@@ -1315,7 +1445,7 @@ local function watchVDamageCounter()
     end)
 end
 
--- Hook détection Shark Z / Dough V / Cursed Z
+-- Hook détection Shark Z / Dough V / Cursed Z (fusionné, ZSkill Godhuman géré dans oldNamecall)
 if not getgenv().VSkillHooked then
     getgenv().VSkillHooked = true
     local vOld
@@ -1515,6 +1645,7 @@ local function onCharacterAdded(char)
     table.insert(characterConnections, char.ChildRemoved:Connect(function(child)
         if child == currentTool then currentTool = nil godhumanZActive = false end
     end))
+    task.delay(2, watchAimlockDamage)
 end
 player.CharacterAdded:Connect(onCharacterAdded)
 if player.Character then onCharacterAdded(player.Character) end
@@ -1542,7 +1673,6 @@ local Tabs = {
     Legit    = Window:AddTab("Legit",    "crosshair"),
     Player   = Window:AddTab("Player",   "user"),
     Glitch   = Window:AddTab("Glitch",   "zap"),
-    Macro    = Window:AddTab("Macro",    "play"),
     Visual   = Window:AddTab("Visual",   "eye"),
     Font     = Window:AddTab("Font",     "type"),
     Settings = Window:AddTab("Settings", "settings"),
@@ -1644,10 +1774,10 @@ SAPlayersBox:AddToggle("ZSkillorM1", {
     Callback = function(v) ZSkillorM1 = v end,
 })
 
-SAPlayersBox:AddToggle("GodhumanZ", {
-    Text = "Godhuman Z Aimlock", Default = false,
-    Tooltip = "Aimlock caméra 1s après le Z de Godhuman",
-    Callback = function(v) ZSkillsEnabled = v if not v then stopAimlock() end end,
+SAPlayersBox:AddToggle("TargetInfo", {
+    Text = "Target Info (HP + Nom)", Default = false,
+    Tooltip = "Affiche le nom et la vie de la cible la plus proche",
+    Callback = function(v) TargetInfo = v if v then startTargetInfo() else stopTargetInfo() end end,
 })
 
 SAPlayersBox:AddToggle("Prediction", {
@@ -1758,7 +1888,17 @@ PlayerMoveBox:AddToggle("FlyNormal", {
 })
 PlayerMoveBox:AddSlider("FlySpeed", {
     Text = "Fly Speed", Default = 50, Min = 10, Max = 300, Rounding = 0,
-    Callback = function(v) flySpeed = v end,
+    Callback = function(v)
+        flySpeed = v
+        -- Mettre à jour le label speed dans le mini toggle si actif
+        if flyMiniGui then
+            local panel = flyMiniGui:FindFirstChildOfClass("Frame")
+            if panel then
+                local lbl = panel:FindFirstChildOfClass("TextLabel")
+                if lbl then lbl.Text = "Speed: " .. flySpeed end
+            end
+        end
+    end,
 })
 PlayerMoveBox:AddDivider()
 PlayerMoveBox:AddToggle("FlySpin", {
@@ -1815,140 +1955,6 @@ DiamondBox:AddSlider("DiamondCharge", {
 })
 
 -- =====================================================================
--- MACRO SYSTEM — Combo automatique par skill
--- =====================================================================
-local VIM = game:GetService("VirtualInputManager")
-
-local macroRunning = false
-
--- Config par catégorie : { enabled, delay (cs), keycode }
-local MacroConfig = {
-    Melee = {
-        Z = { enabled=false, delay=10 },
-        X = { enabled=false, delay=10 },
-        C = { enabled=false, delay=10 },
-        V = { enabled=false, delay=10 },
-        F = { enabled=false, delay=10 },
-    },
-    Fruit = {
-        Z = { enabled=false, delay=10 },
-        X = { enabled=false, delay=10 },
-        C = { enabled=false, delay=10 },
-        V = { enabled=false, delay=10 },
-        F = { enabled=false, delay=10 },
-    },
-    Gun = {
-        Z = { enabled=false, delay=10 },
-        X = { enabled=false, delay=10 },
-        C = { enabled=false, delay=10 },
-        V = { enabled=false, delay=10 },
-        F = { enabled=false, delay=10 },
-    },
-}
-
-local keyMap = {
-    Z = Enum.KeyCode.Z,
-    X = Enum.KeyCode.X,
-    C = Enum.KeyCode.C,
-    V = Enum.KeyCode.V,
-    F = Enum.KeyCode.F,
-}
-
-local function pressKey(kc, delayCs)
-    VIM:SendKeyEvent(true,  kc, false, game)
-    task.wait(0.05)
-    VIM:SendKeyEvent(false, kc, false, game)
-    task.wait(delayCs / 100)
-end
-
-local function getCurrentCategory()
-    local char = player.Character
-    if not char then return nil end
-    for _, tool in ipairs(char:GetChildren()) do
-        if tool:IsA("Tool") then
-            local n = tool.Name:lower()
-            if n:find("gun") or n:find("rifle") or n:find("musket") or n:find("cannon") then
-                return "Gun"
-            elseif n:find("sword") or n:find("katana") or n:find("blade") or n:find("cutlass") or n:find("saber") then
-                return "Melee"
-            else
-                return "Fruit"
-            end
-        end
-    end
-    return nil
-end
-
-local macroConn = nil
-local macroOrder = {"Z","X","C","V","F"}
-
-local function startMacro()
-    if macroConn then macroConn:Disconnect() end
-    macroConn = RunService.Heartbeat:Connect(function()
-        if not macroRunning then return end
-        local cat = getCurrentCategory()
-        if not cat then return end
-        local cfg = MacroConfig[cat]
-        task.spawn(function()
-            for _, skill in ipairs(macroOrder) do
-                if cfg[skill].enabled then
-                    pressKey(keyMap[skill], cfg[skill].delay)
-                end
-            end
-        end)
-    end)
-end
-
-local function stopMacro()
-    if macroConn then macroConn:Disconnect() macroConn = nil end
-    macroRunning = false
-end
-
--- =====================================================================
--- TAB MACRO UI
--- =====================================================================
-local MeleeBox = Tabs.Macro:AddLeftGroupbox("Melee")
-local FruitBox = Tabs.Macro:AddRightGroupbox("Fruit")
-local GunBox   = Tabs.Macro:AddLeftGroupbox("Gun")
-local MacroCtrl = Tabs.Macro:AddRightGroupbox("Control")
-
--- Helper pour créer les toggles/sliders par catégorie
-local function buildSkillUI(box, catName)
-    for _, skill in ipairs({"Z","X","C","V","F"}) do
-        box:AddToggle("Macro"..catName..skill, {
-            Text = skill .. " Skill", Default = false,
-            Callback = function(v) MacroConfig[catName][skill].enabled = v end,
-        })
-        box:AddSlider("MacroDelay"..catName..skill, {
-            Text = skill.." Délai", Default = 10, Min = 1, Max = 200, Rounding = 0, Suffix = " cs",
-            Callback = function(v) MacroConfig[catName][skill].delay = v end,
-        })
-        box:AddDivider()
-    end
-end
-
-buildSkillUI(MeleeBox, "Melee")
-buildSkillUI(FruitBox, "Fruit")
-buildSkillUI(GunBox,   "Gun")
-
-MacroCtrl:AddToggle("MacroActive", {
-    Text = "Activer Macro", Default = false,
-    Tooltip = "Lance le combo automatiquement selon l'outil équipé",
-    Callback = function(v)
-        macroRunning = v
-        if v then startMacro() else stopMacro() end
-    end,
-})
-MacroCtrl:AddLabel("Détection auto :")
-MacroCtrl:AddLabel("Gun = fusil/pistolet")
-MacroCtrl:AddLabel("Melee = épée/katana")
-MacroCtrl:AddLabel("Fruit = tout le reste")
-MacroCtrl:AddButton({
-    Text = "Stop Macro",
-    Func = function() stopMacro() end,
-})
-
--- =====================================================================
 -- TAB VISUAL
 -- =====================================================================
 local ESPPlayersBox = Tabs.Visual:AddLeftGroupbox("ESP Players")
@@ -1986,39 +1992,17 @@ ESPNPCBox:AddToggle("ESPNPCs", {
         if ESPEnabled or ESPNPCEnabled then startESP() else stopESP() end
     end,
 })
+ESPNPCBox:AddDivider()
+ESPNPCBox:AddToggle("ESPNPCBoxFlag",  { Text = "Box",        Default = true,  Callback = function(v) ESPNPCBox_v   = v end })
+ESPNPCBox:AddToggle("ESPNPCNameFlag", { Text = "Name",       Default = true,  Callback = function(v) ESPNPCName_v  = v end })
+ESPNPCBox:AddToggle("ESPNPCDistFlag", { Text = "Distance",   Default = true,  Callback = function(v) ESPNPCDist_v  = v end })
+ESPNPCBox:AddToggle("ESPNPCHpFlag",   { Text = "Health Bar", Default = true,  Callback = function(v) ESPNPCHp_v    = v end })
+ESPNPCBox:AddToggle("ESPNPCChamsF",   { Text = "Chams",      Default = false, Callback = function(v) ESPNPCChams_v = v end })
 
 -- =====================================================================
 -- TAB FONT
 -- =====================================================================
-local FontBox = Tabs.Font:AddLeftGroupbox("Font Changer")
-
-local fontList = {}
-for _, v in Enum.Font:GetEnumItems() do
-    table.insert(fontList, tostring(v):split(".")[3])
-end
-
-FontBox:AddDropdown("FontStyle", {
-    Values = fontList, Default = 1,
-    Text = "Font Style", Searchable = true,
-    Callback = function(v)
-        fontPreset = v
-        if fontChangerEnabled then disableFonts() enableFonts() end
-    end,
-})
-FontBox:AddToggle("FontChanger", {
-    Text = "Activer Font Changer", Default = false,
-    Callback = function(v)
-        fontChangerEnabled = v
-        if v then enableFonts() else disableFonts() end
-    end,
-})
-FontBox:AddButton({
-    Text = "Rafraîchir",
-    Func = function()
-        if fontChangerEnabled then disableFonts() enableFonts()
-        else Library:Notify({Title="Font", Description="Active d'abord le toggle!", Time=3}) end
-    end,
-})
+-- (vide pour l'instant)
 
 -- =====================================================================
 -- TAB SETTINGS
